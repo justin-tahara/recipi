@@ -1,0 +1,15 @@
+// Shared build settings for every target.
+//
+// Signing lives in Config/Local.xcconfig, which is gitignored, so each
+// contributor signs with their own Apple team. Copy Local.xcconfig.example
+// to Local.xcconfig and fill it in.
+
+RECIPI_BUNDLE_ID_PREFIX = com.justintahara
+RECIPI_BUNDLE_ID = $(RECIPI_BUNDLE_ID_PREFIX).recipi
+RECIPI_APP_GROUP_ID = group.$(RECIPI_BUNDLE_ID)
+RECIPI_CLOUDKIT_CONTAINER_ID = iCloud.$(RECIPI_BUNDLE_ID)
+
+CODE_SIGN_STYLE = Automatic
+DEVELOPMENT_TEAM =
+
+#include? "Local.xcconfig"

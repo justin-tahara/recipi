@@ -1,0 +1,8 @@
+// Copy to Config/Local.xcconfig (gitignored) and fill in.
+
+// Your Apple Developer team ID (Xcode > Settings > Accounts > Team).
+DEVELOPMENT_TEAM = ABCDE12345
+
+// Contributors: use your own prefix so the bundle, App Group and iCloud
+// container IDs don't collide with the released app.
+// RECIPI_BUNDLE_ID_PREFIX = com.yourname
