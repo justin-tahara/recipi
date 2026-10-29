@@ -4,7 +4,7 @@ A walk-through to run on a real iPhone before a TestFlight build. It covers
 link import, the share sheet and the features that landed on Oct 29 (units,
 scaling, cook log, auto tags, translation, backup). Nothing here has been
 tried on a device yet; CI only runs a simulator smoke test. The last section
-covers the follow-up PRs (#50 to #56) once they're merged.
+covers the follow-up PRs (#50 to #56 and the Safari page change).
 
 Tick each box, and open an issue for anything that's off (a screenshot helps).
 
@@ -113,14 +113,16 @@ Tick each box, and open an issue for anything that's off (a screenshot helps).
 - [ ] Cooking mode keeps the screen awake, and checking off ingredients and
       moving between steps works with wet-hands-sized taps.
 
-## After the follow-up PRs merge (#50 to #56)
+## Follow-up PRs (#50 to #56, and reading Safari's page)
 
 - [ ] Import errors read right: a link to a page that doesn't exist says the
       page wasn't found; a link to a PDF or photo says it's a file; airplane
       mode says you're offline.
-- [ ] A site that blocks bots: if a link fails with "didn't let recipi read
-      the page", note the site. It helps decide whether the share extension
-      should read the page Safari already loaded.
+- [ ] A site that blocks bots (for example Budget Bytes, Minimalist Baker,
+      Smitten Kitchen, Chefkoch or Maangchi, which failed the nightly check):
+      paste the link in the app, then share the same page from Safari. The
+      share sheet reads the page Safari already loaded, so it should import
+      even when the pasted link says "didn't let recipi read the page".
 - [ ] Share a recipe you've already saved: "Already in recipi" shows, with
       Done and Save another copy.
 - [ ] Share a Google AMP link (from Google search results) and a link inside
