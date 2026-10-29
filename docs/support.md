@@ -10,6 +10,10 @@ are the best place to ask.
 
 ## A recipe didn't import
 
+If recipi says a site didn't let it read the page, open the page in Safari
+and share it to recipi instead: recipi then reads the page Safari already
+loaded.
+
 Some sites mark up their recipes in unusual ways. Please
 [report the site](https://github.com/justin-tahara/recipi/issues/new?template=site-import.yml)
 with the link and what went wrong (nothing came in, or something was
