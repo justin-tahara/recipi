@@ -28,17 +28,10 @@ public struct EmptyStateView<Actions: View>: View {
         self.actions = actions()
     }
 
+    /// Fills the space it's given and centers itself. It doesn't scroll; put
+    /// it in a `ScrollView` where large text could make it taller than the
+    /// screen.
     public var body: some View {
-        // Scrolls only when large text makes it taller than the screen.
-        ViewThatFits(in: .vertical) {
-            content
-            ScrollView { content }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onAppear { hasAppeared = true }
-    }
-
-    private var content: some View {
         VStack(spacing: Theme.Spacing.lg) {
             Image(systemName: symbol)
                 .font(.system(size: iconSize, weight: .semibold))
@@ -68,7 +61,8 @@ public struct EmptyStateView<Actions: View>: View {
             .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : 280)
         }
         .padding(Theme.Spacing.xl)
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onAppear { hasAppeared = true }
     }
 }
 

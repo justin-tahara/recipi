@@ -61,6 +61,7 @@ struct SettingsView: View {
             }
         } footer: {
             Text("Rename, merge, recolor or delete tags. recipi tags imported recipes by cuisine, meal, diet and traits like quick or high protein.")
+                .foregroundStyle(Theme.Colors.textSecondary)
         }
     }
 
@@ -74,10 +75,15 @@ struct SettingsView: View {
                 Label("Units", systemImage: "ruler")
                     .foregroundStyle(Theme.Colors.textPrimary)
             }
+            // A menu picker's value doesn't grow with Dynamic Type; a pushed
+            // list does, like the language picker.
+            .pickerStyle(.navigationLink)
         } header: {
             Text("Measurements")
+                .foregroundStyle(Theme.Colors.textSecondary)
         } footer: {
             Text("Shows amounts and oven temperatures in the units you're used to. Only like for like: cups become milliliters and ounces become grams, never cups into grams. You can switch a single recipe from its page.")
+                .foregroundStyle(Theme.Colors.textSecondary)
         }
     }
 
@@ -105,8 +111,10 @@ struct SettingsView: View {
             }
         } header: {
             Text("Sync")
+                .foregroundStyle(Theme.Colors.textSecondary)
         } footer: {
             Text(syncFooter)
+                .foregroundStyle(Theme.Colors.textSecondary)
         }
     }
 
@@ -155,6 +163,7 @@ struct SettingsView: View {
             .accessibilityElement(children: .combine)
         } header: {
             Text("About")
+                .foregroundStyle(Theme.Colors.textSecondary)
         }
     }
 

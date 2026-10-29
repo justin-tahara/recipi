@@ -5,8 +5,8 @@ import SwiftUI
 /// under the name so neither gets cut off.
 ///
 /// VoiceOver reads a plain value with its name, as one element ("Prep, 10
-/// min"). A control (a menu, stepper or link) carries its own label, so the
-/// row leaves it alone and keeps the name out of the way.
+/// min"). A control (a menu, stepper or link) stays its own element, after
+/// the name.
 public struct PropertyRow<Content: View>: View {
     let label: String
     let symbol: String
@@ -17,8 +17,8 @@ public struct PropertyRow<Content: View>: View {
     @ScaledMetric(relativeTo: .subheadline) private var iconWidth: CGFloat = 18
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    /// - Parameter isInteractive: True when `content` is a control with its
-    ///   own accessibility label.
+    /// - Parameter isInteractive: True when `content` is a control, which
+    ///   must stay reachable on its own.
     public init(_ label: String, symbol: String, isInteractive: Bool = false, @ViewBuilder content: () -> Content) {
         self.label = label
         self.symbol = symbol
@@ -42,7 +42,6 @@ public struct PropertyRow<Content: View>: View {
             .font(Theme.Fonts.meta)
             .foregroundStyle(Theme.Colors.textSecondary)
             .frame(width: isLarge ? nil : labelWidth, alignment: .leading)
-            .accessibilityHidden(isInteractive)
 
             content
                 .font(Theme.Fonts.meta)

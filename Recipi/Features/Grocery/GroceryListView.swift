@@ -114,8 +114,7 @@ struct GroceryListView: View {
         .font(Theme.Fonts.eyebrow)
         .textCase(.uppercase)
         .tracking(0.8)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(title), \(count == 1 ? "1 item" : "\(count) items")")
+        .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
     }
 

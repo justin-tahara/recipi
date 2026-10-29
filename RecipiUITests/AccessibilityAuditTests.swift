@@ -112,7 +112,7 @@ final class AccessibilityAuditTests: XCTestCase {
     @MainActor
     private func audit(_ app: XCUIApplication, screen: String) throws {
         try app.performAccessibilityAudit(for: .all) { issue in
-            if !self.isKnownFalsePositive(issue) {
+            if !self.isKnownFalsePositive(issue, on: screen, in: app) {
                 self.issues.append("\(screen): \(Self.describe(issue))")
             }
             // Handled here: reported together at the end of the test.
@@ -120,10 +120,52 @@ final class AccessibilityAuditTests: XCTestCase {
         }
     }
 
-    /// Issues in system UI recipi doesn't draw and can't change.
+    /// Issues the audit reports that aren't problems a person would meet.
+    /// Each case is kept as narrow as it can be; anything else fails.
     @MainActor
-    private func isKnownFalsePositive(_ issue: XCUIAccessibilityAuditIssue) -> Bool {
-        false
+    private func isKnownFalsePositive(_ issue: XCUIAccessibilityAuditIssue, on screen: String, in app: XCUIApplication) -> Bool {
+        guard let element = issue.element else { return false }
+        let frame = element.frame
+
+        // Navigation bars, tab bars and the search field are UIKit's. Their
+        // text grows only so far, by design: at the accessibility sizes
+        // UIKit shows a long-pressed item in the Large Content Viewer
+        // instead, which the audit doesn't count.
+        if issue.auditType.contains(.dynamicType) || issue.auditType.contains(.textClipped) {
+            if element.elementType == .searchField {
+                return true
+            }
+            let bars = app.navigationBars.allElementsBoundByIndex + app.tabBars.allElementsBoundByIndex
+            if bars.contains(where: { $0.frame.contains(frame) }) {
+                return true
+            }
+        }
+
+        guard issue.auditType.contains(.contrast) else { return false }
+
+        // WCAG's contrast rule exempts controls that are turned off, which
+        // are meant to look faint (cooking mode's Back on the first step,
+        // the iCloud switch in a build with no container).
+        if !element.isEnabled {
+            return true
+        }
+
+        // On a recipe, the page scrolls under the Start cooking bar, whose
+        // background fades the page out above the button. Text caught in
+        // the fade is checked against the faded page; it is readable once
+        // scrolled up. The button's own text is still checked.
+        if screen == "Recipe" {
+            let startCooking = app.buttons["Start cooking"].firstMatch
+            if startCooking.exists, element.label != "Start cooking" {
+                // The bar's top padding, Theme.Spacing.lg.
+                let fadeTop = startCooking.frame.minY - 24
+                if frame.maxY > fadeTop {
+                    return true
+                }
+            }
+        }
+
+        return false
     }
 
     @MainActor

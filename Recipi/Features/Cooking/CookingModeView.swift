@@ -156,9 +156,13 @@ private struct StepProgressBar: View {
             }
         }
         .motion(Motion.smooth, value: current)
+        // A 44 pt tall element for VoiceOver and touch, around a 4 pt bar,
+        // without taking more room on screen.
+        .padding(.vertical, 20)
         .accessibilityElement()
         .accessibilityLabel("Progress")
         .accessibilityValue("Step \(current + 1) of \(count)")
+        .padding(.vertical, -20)
     }
 }
 

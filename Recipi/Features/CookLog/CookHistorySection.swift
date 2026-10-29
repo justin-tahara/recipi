@@ -23,7 +23,6 @@ struct CookHistorySection: View {
                     .font(Theme.Fonts.label)
                     .foregroundStyle(Theme.Colors.textTertiary)
                     .contentTransition(.numericText(value: Double(logs.count)))
-                    .accessibilityLabel(logs.count == 1 ? "1 cook" : "\(logs.count) cooks")
             }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: Theme.Spacing.sm) {

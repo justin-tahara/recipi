@@ -36,8 +36,10 @@ struct TranslationSettingsSection: View {
             .disabled(preferences.recipeLanguage == .dontTranslate)
         } header: {
             Text("Language")
+                .foregroundStyle(Theme.Colors.textSecondary)
         } footer: {
             Text(footer)
+                .foregroundStyle(Theme.Colors.textSecondary)
         }
         .task {
             if languages.isEmpty {

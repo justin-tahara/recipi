@@ -66,6 +66,7 @@ struct TagFilterBar: View {
             Rectangle()
                 .fill(Theme.Colors.divider)
                 .frame(width: 1, height: 18)
+                .accessibilityHidden(true)
             Text(section.title)
                 .font(Theme.Fonts.eyebrow)
                 .textCase(.uppercase)
@@ -73,7 +74,7 @@ struct TagFilterBar: View {
                 .fixedSize()
         }
         .padding(.leading, Theme.Spacing.xxs)
-        .accessibilityHidden(true)
+        .accessibilityAddTraits(.isHeader)
     }
 
     private func chip(_ facet: TagFacet, color: TagColor) -> some View {

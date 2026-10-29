@@ -23,7 +23,7 @@ public struct Checkbox: View {
             RoundedRectangle(cornerRadius: Theme.Radius.small, style: .continuous)
                 .strokeBorder(isOn ? tint : Theme.Colors.border, lineWidth: 1.5)
             Image(systemName: "checkmark")
-                .font(.system(size: size * 0.55, weight: .bold))
+                .font(.caption.weight(.bold))
                 .foregroundStyle(Theme.Colors.onAccent)
                 .scaleEffect(isOn ? 1 : 0.3)
                 .opacity(isOn ? 1 : 0)

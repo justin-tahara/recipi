@@ -53,4 +53,27 @@ struct ContrastTests {
             #expect(ratio.dark >= Self.minimum, "dark: \(ratio.dark)")
         }
     }
+
+    /// The accent is used as text and tint (links, step badges, counts) and
+    /// behind button text.
+    @Test func accentIsReadable() {
+        for page in [Values.background, Values.surface, Values.elevated] {
+            let ratio = Values.accent.contrast(with: page)
+            #expect(ratio.light >= Self.minimum, "accent light: \(ratio.light)")
+            #expect(ratio.dark >= Self.minimum, "accent dark: \(ratio.dark)")
+        }
+        let onAccent = Values.onAccent.contrast(with: Values.accent)
+        #expect(onAccent.light >= Self.minimum, "onAccent light: \(onAccent.light)")
+        #expect(onAccent.dark >= Self.minimum, "onAccent dark: \(onAccent.dark)")
+    }
+
+    /// Accent text on an `accentSoft` badge, e.g. the step numbers.
+    @Test func accentIsReadableOnAccentSoft() {
+        for page in [Values.background, Values.surface, Values.elevated] {
+            let soft = ColorValues(light: Values.accentSoft.light.over(page.light), dark: Values.accentSoft.dark.over(page.dark))
+            let ratio = Values.accent.contrast(with: soft)
+            #expect(ratio.light >= Self.minimum, "light: \(ratio.light)")
+            #expect(ratio.dark >= Self.minimum, "dark: \(ratio.dark)")
+        }
+    }
 }

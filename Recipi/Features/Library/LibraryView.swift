@@ -20,15 +20,23 @@ struct LibraryView: View {
         NavigationStack {
             Group {
                 if recipes.isEmpty {
-                    EmptyStateView(
-                        symbol: "fork.knife",
-                        title: "No recipes yet",
-                        message: "Import one from a link, share a page from Safari, or add your own."
-                    ) {
-                        Button("Import from link", systemImage: "link") { isShowingImport = true }
-                            .buttonStyle(.recipiPrimary)
-                        Button("Add manually", systemImage: "square.and.pencil", action: addManually)
-                            .buttonStyle(.recipiSecondary)
+                    // Centered, and scrolls when large text makes it taller
+                    // than the screen.
+                    GeometryReader { proxy in
+                        ScrollView {
+                            EmptyStateView(
+                                symbol: "fork.knife",
+                                title: "No recipes yet",
+                                message: "Import one from a link, share a page from Safari, or add your own."
+                            ) {
+                                Button("Import from link", systemImage: "link") { isShowingImport = true }
+                                    .buttonStyle(.recipiPrimary)
+                                Button("Add manually", systemImage: "square.and.pencil", action: addManually)
+                                    .buttonStyle(.recipiSecondary)
+                            }
+                            .frame(minHeight: proxy.size.height)
+                        }
+                        .scrollBounceBehavior(.basedOnSize)
                     }
                 } else {
                     recipeList
@@ -270,7 +278,6 @@ private struct RecipeRow: View {
                     Text("+\(tags.count - 2)")
                         .font(Theme.Fonts.label)
                         .foregroundStyle(Theme.Colors.textTertiary)
-                        .accessibilityLabel(tags.count == 3 ? "1 more tag" : "\(tags.count - 2) more tags")
                 }
             }
         }

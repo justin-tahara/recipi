@@ -225,14 +225,12 @@ struct RecipeDetailView: View {
                 PropertyRow("Tags", symbol: "tag") {
                     FlowLayout(spacing: 6) {
                         ForEach(tags) { tag in
-                            TagPill(tag.name, color: tag.color)
+                            // The row says "Tags" once, so each pill reads
+                            // just its name.
+                            TagPill(tag.name, color: tag.color, accessibilityLabel: tag.name)
                         }
                     }
                     .padding(.vertical, Theme.Spacing.xxs)
-                    // "Tags, Dinner, Pasta and Quick" rather than "Tag, …"
-                    // before each one.
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(tags.map(\.name).formatted(.list(type: .and)))
                 }
             }
             if let lastCookedAt = recipe.lastCookedAt {
@@ -263,7 +261,6 @@ struct RecipeDetailView: View {
                 Text("\(ingredients.count)")
                     .font(Theme.Fonts.label)
                     .foregroundStyle(Theme.Colors.textTertiary)
-                    .accessibilityLabel(ingredients.count == 1 ? "1 ingredient" : "\(ingredients.count) ingredients")
             }
             if scale != 1 {
                 scaleBanner

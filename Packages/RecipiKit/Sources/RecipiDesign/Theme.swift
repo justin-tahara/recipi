@@ -24,12 +24,17 @@ public enum Theme {
         public static let divider = Color(light: RGBA(0x37352F, alpha: 0.09), dark: RGBA(0xFFFFFF, alpha: 0.09))
         public static let border = Color(light: RGBA(0x37352F, alpha: 0.16), dark: RGBA(0xFFFFFF, alpha: 0.14))
 
-        /// Paprika. Matches the AccentColor asset.
+        /// Paprika. Matches the AccentColor asset. A shade deeper than the
+        /// logo's in light mode, so it passes WCAG AA as text and behind
+        /// white text.
         public static let accent = Color(Values.accent)
-        public static let accentSoft = Color(light: RGBA(0xD96B3B, alpha: 0.12), dark: RGBA(0xE8804F, alpha: 0.18))
-        public static let onAccent = Color.white
+        /// A faint wash of the accent, e.g. behind step numbers.
+        public static let accentSoft = Color(Values.accentSoft)
+        /// Text and icons on an accent fill: white in light mode, near-black
+        /// on the brighter dark-mode paprika.
+        public static let onAccent = Color(Values.onAccent)
 
-        /// The numbers behind the colors above, so `ThemeContrastTests` can
+        /// The numbers behind the colors above, so `ContrastTests` can
         /// check text against what it sits on (WCAG AA is 4.5:1 for text).
         enum Values {
             static let background = ColorValues(light: RGBA(0xFFFFFF), dark: RGBA(0x191919))
@@ -39,7 +44,9 @@ public enum Theme {
             static let textPrimary = ColorValues(light: RGBA(0x37352F), dark: RGBA(0xE6E5E3))
             static let textSecondary = ColorValues(light: RGBA(0x5B5B58), dark: RGBA(0xAFAFAF))
             static let textTertiary = ColorValues(light: RGBA(0x71706B), dark: RGBA(0x8E8E8E))
-            static let accent = ColorValues(light: RGBA(0xD96B3B), dark: RGBA(0xE8804F))
+            static let accent = ColorValues(light: RGBA(0xB04D22), dark: RGBA(0xE8804F))
+            static let accentSoft = ColorValues(light: RGBA(0xB04D22, alpha: 0.06), dark: RGBA(0xE8804F, alpha: 0.12))
+            static let onAccent = ColorValues(light: RGBA(0xFFFFFF), dark: RGBA(0x191919))
         }
     }
 
