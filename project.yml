@@ -37,14 +37,12 @@ targets:
       path: Recipi/Info.plist
       properties:
         CFBundleDisplayName: recipi
+        # Only the system's HTTPS, so App Store uploads skip the export
+        # compliance question.
+        ITSAppUsesNonExemptEncryption: false
         UILaunchScreen: {}
         UIBackgroundModes: [remote-notification]
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
-        UISupportedInterfaceOrientations~ipad:
-          - UIInterfaceOrientationPortrait
-          - UIInterfaceOrientationPortraitUpsideDown
-          - UIInterfaceOrientationLandscapeLeft
-          - UIInterfaceOrientationLandscapeRight
         NSRemindersFullAccessUsageDescription: recipi adds your grocery list to Reminders.
         RecipiAppGroupID: $(RECIPI_APP_GROUP_ID)
         RecipiCloudKitContainerID: $(RECIPI_CLOUDKIT_CONTAINER_ID)
@@ -54,13 +52,13 @@ targets:
         com.apple.security.application-groups: [$(RECIPI_APP_GROUP_ID)]
         com.apple.developer.icloud-services: [CloudKit]
         com.apple.developer.icloud-container-identifiers: [$(RECIPI_CLOUDKIT_CONTAINER_ID)]
-        aps-environment: development
+        aps-environment: $(RECIPI_APS_ENVIRONMENT)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(RECIPI_BUNDLE_ID)
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
-        TARGETED_DEVICE_FAMILY: "1,2"
+        TARGETED_DEVICE_FAMILY: "1"
 
   RecipiShare:
     type: app-extension
@@ -94,7 +92,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(RECIPI_BUNDLE_ID).share
-        TARGETED_DEVICE_FAMILY: "1,2"
+        TARGETED_DEVICE_FAMILY: "1"
 
   # Hosted unit tests. They link against the app, so they also see
   # RecipiKit through it; linking the package again would duplicate the
@@ -110,7 +108,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(RECIPI_BUNDLE_ID).tests
         GENERATE_INFOPLIST_FILE: YES
-        TARGETED_DEVICE_FAMILY: "1,2"
+        TARGETED_DEVICE_FAMILY: "1"
 
   # UI tests launch the app with -ui-testing: an in-memory store and
   # fixture pages instead of the network.
@@ -125,7 +123,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(RECIPI_BUNDLE_ID).uitests
         GENERATE_INFOPLIST_FILE: YES
-        TARGETED_DEVICE_FAMILY: "1,2"
+        TARGETED_DEVICE_FAMILY: "1"
 
 schemes:
   Recipi:
