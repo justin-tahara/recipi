@@ -177,6 +177,8 @@ struct TagDetailView: View {
                 RoundedRectangle(cornerRadius: Theme.Radius.small, style: .continuous)
                     .strokeBorder(isSelected ? shown.foreground : .clear, lineWidth: 1)
             }
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.pressable)
         .accessibilityLabel(color?.displayName ?? "Automatic color")

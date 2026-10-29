@@ -15,6 +15,7 @@ struct TagEditor: View {
 
     @State private var newTag = ""
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         let suggestions = draft.tagSuggestions(for: newTag, from: existing)
@@ -67,6 +68,8 @@ struct TagEditor: View {
                                 .padding(.horizontal, 7)
                                 .padding(.vertical, 2)
                                 .background(Theme.Colors.fill, in: RoundedRectangle(cornerRadius: Theme.Radius.small, style: .continuous))
+                                .frame(minHeight: 44)
+                                .contentShape(Rectangle())
                             }
                             .buttonStyle(.pressable)
                             .accessibilityLabel("Add tag \(name)")
@@ -96,7 +99,7 @@ struct TagEditor: View {
         } label: {
             HStack(spacing: 4) {
                 Text(name)
-                    .lineLimit(1)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                 Image(systemName: "xmark")
                     .font(.caption2.weight(.bold))
                     .opacity(0.7)
@@ -107,6 +110,9 @@ struct TagEditor: View {
             .padding(.horizontal, 7)
             .padding(.vertical, 2)
             .background(color.background, in: RoundedRectangle(cornerRadius: Theme.Radius.small, style: .continuous))
+            // The pill stays small; the button takes touches 44 pt tall.
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.pressable)
         .accessibilityLabel("Remove tag \(name)")

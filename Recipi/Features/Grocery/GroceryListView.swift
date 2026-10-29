@@ -114,6 +114,9 @@ struct GroceryListView: View {
         .font(Theme.Fonts.eyebrow)
         .textCase(.uppercase)
         .tracking(0.8)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title), \(count == 1 ? "1 item" : "\(count) items")")
+        .accessibilityAddTraits(.isHeader)
     }
 
     private var uncheckedItems: [GroceryItem] {
@@ -178,7 +181,7 @@ private struct GroceryRow: View {
                         .strikethrough(item.isChecked, color: Theme.Colors.textTertiary)
                         .foregroundStyle(item.isChecked ? Theme.Colors.textTertiary : Theme.Colors.textPrimary)
                     if let recipeTitle = item.recipeTitle, !recipeTitle.isEmpty {
-                        TagPill(recipeTitle)
+                        TagPill(recipeTitle, accessibilityLabel: "From \(recipeTitle)")
                     }
                 }
                 Spacer(minLength: 0)
@@ -190,6 +193,7 @@ private struct GroceryRow: View {
         .sensoryFeedback(.selection, trigger: item.isChecked)
         .listRowBackground(Theme.Colors.background)
         .listRowSeparatorTint(Theme.Colors.divider)
-        .accessibilityAddTraits(item.isChecked ? .isSelected : [])
+        .checkedState(item.isChecked)
+        .accessibilityHint(item.isChecked ? "Moves it back to To buy" : "Moves it to In the cart")
     }
 }

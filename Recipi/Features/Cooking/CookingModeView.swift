@@ -17,6 +17,7 @@ struct CookingModeView: View {
     @State private var checkedIngredients: Set<PersistentIdentifier> = []
     @State private var showsIngredients = false
     @State private var isLoggingCook = false
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         let steps = recipe.sortedSteps
@@ -74,6 +75,13 @@ struct CookingModeView: View {
                 .presentationBackground(Theme.Colors.background)
             }
             .sensoryFeedback(.selection, trigger: currentStep)
+            // Next and Back keep VoiceOver on the button, so read out the
+            // step that's now showing.
+            .onChange(of: currentStep) { _, step in
+                guard steps.indices.contains(step) else { return }
+                let text = TemperatureConverter.convert(steps[step].text, to: units)
+                AccessibilityNotification.Announcement("Step \(step + 1) of \(steps.count). \(text)").post()
+            }
             // Finishing offers to log the cook; either way cooking mode
             // closes once the sheet does.
             .sheet(isPresented: $isLoggingCook, onDismiss: { dismiss() }) {
@@ -88,14 +96,20 @@ struct CookingModeView: View {
 
     private func controls(stepCount: Int) -> some View {
         let isLast = currentStep >= stepCount - 1
-        return HStack(spacing: Theme.Spacing.sm) {
+        let isLarge = dynamicTypeSize.isAccessibilitySize
+        // Side by side normally; stacked at the accessibility sizes, where
+        // "Next step" wouldn't fit beside Back.
+        let layout = isLarge
+            ? AnyLayout(VStackLayout(spacing: Theme.Spacing.xs))
+            : AnyLayout(HStackLayout(spacing: Theme.Spacing.sm))
+        return layout {
             Button {
                 go(to: currentStep - 1)
             } label: {
                 Label("Back", systemImage: "chevron.left")
             }
             .buttonStyle(.recipiSecondary)
-            .frame(maxWidth: 140)
+            .frame(maxWidth: isLarge ? .infinity : 140)
             .disabled(currentStep == 0)
 
             Button {
@@ -109,6 +123,7 @@ struct CookingModeView: View {
                     Text(isLast ? "Finish" : "Next step")
                     Image(systemName: isLast ? "checkmark" : "chevron.right")
                         .contentTransition(.symbolEffect(.replace))
+                        .accessibilityHidden(true)
                 }
             }
             .buttonStyle(.recipiPrimary)
@@ -142,7 +157,8 @@ private struct StepProgressBar: View {
         }
         .motion(Motion.smooth, value: current)
         .accessibilityElement()
-        .accessibilityLabel("Step \(current + 1) of \(count)")
+        .accessibilityLabel("Progress")
+        .accessibilityValue("Step \(current + 1) of \(count)")
     }
 }
 
@@ -164,9 +180,12 @@ private struct StepPage: View {
                 .font(Theme.Fonts.eyebrow)
                 .textCase(.uppercase)
                 .tracking(1)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Step \(number) of \(count)")
+                .accessibilityAddTraits(.isHeader)
 
                 if let section = step.section {
-                    TagPill(section)
+                    TagPill(section, accessibilityLabel: "Section, \(section)")
                 }
 
                 Text(TemperatureConverter.convert(step.text, to: units))
@@ -233,6 +252,9 @@ private struct IngredientChecklist: View {
         .padding(.vertical, Theme.Spacing.xs)
         .motion(Motion.smooth, value: done)
         .textCase(nil)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Ingredients added")
+        .accessibilityValue("\(done) of \(ingredients.count)")
     }
 
     private func row(for ingredient: Ingredient) -> some View {
@@ -259,6 +281,6 @@ private struct IngredientChecklist: View {
         .buttonStyle(.plain)
         .listRowBackground(Theme.Colors.background)
         .listRowSeparatorTint(Theme.Colors.divider)
-        .accessibilityAddTraits(isChecked ? .isSelected : [])
+        .checkedState(isChecked)
     }
 }

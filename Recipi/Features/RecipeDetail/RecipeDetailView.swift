@@ -29,6 +29,8 @@ struct RecipeDetailView: View {
     @State private var preferences = Preferences()
     /// Units picked for this recipe only. Nil follows the app setting.
     @State private var unitsOverride: MeasurementPreference?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .subheadline) private var stepBadgeSize: CGFloat = 26
 
     var body: some View {
         ScrollView {
@@ -38,7 +40,6 @@ struct RecipeDetailView: View {
                         .frame(height: 260)
                         .frame(maxWidth: .infinity)
                         .clipped()
-                        .accessibilityHidden(true)
                 }
 
                 VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
@@ -202,7 +203,7 @@ struct RecipeDetailView: View {
                 PropertyRow("Total", symbol: "clock") { Text(RecipeFormat.duration(totalTime)) }
             }
             if recipe.servings != nil {
-                PropertyRow("Servings", symbol: "person.2") {
+                PropertyRow("Servings", symbol: "person.2", isInteractive: true) {
                     ServingsStepper(value: servingsBinding)
                         .fixedSize()
                         .accessibilityIdentifier("recipe.servings")
@@ -211,10 +212,10 @@ struct RecipeDetailView: View {
                 PropertyRow("Makes", symbol: "person.2") { Text(yieldText) }
             }
             if !recipe.sortedIngredients.isEmpty {
-                PropertyRow("Scale", symbol: "arrow.up.left.and.arrow.down.right") {
+                PropertyRow("Scale", symbol: "arrow.up.left.and.arrow.down.right", isInteractive: true) {
                     scaleMenu
                 }
-                PropertyRow("Units", symbol: "ruler") {
+                PropertyRow("Units", symbol: "ruler", isInteractive: true) {
                     unitsPicker
                 }
             }
@@ -225,6 +226,11 @@ struct RecipeDetailView: View {
                             TagPill(tag.name, color: tag.color)
                         }
                     }
+                    .padding(.vertical, Theme.Spacing.xxs)
+                    // "Tags, Dinner, Pasta and Quick" rather than "Tag, …"
+                    // before each one.
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(tags.map(\.name).formatted(.list(type: .and)))
                 }
             }
             if let lastCookedAt = recipe.lastCookedAt {
@@ -233,13 +239,16 @@ struct RecipeDetailView: View {
                 }
             }
             if let sourceURL = recipe.sourceURL {
-                PropertyRow("Source", symbol: "link") {
+                PropertyRow("Source", symbol: "link", isInteractive: true) {
                     Link(destination: sourceURL) {
                         Text(Self.displayHost(of: sourceURL))
                             .underline(color: Theme.Colors.border)
                             .lineLimit(1)
+                            .frame(minHeight: 44)
+                            .contentShape(Rectangle())
                     }
                     .accessibilityLabel("View original recipe")
+                    .accessibilityValue(Self.displayHost(of: sourceURL))
                 }
             }
         }
@@ -252,12 +261,15 @@ struct RecipeDetailView: View {
                 Text("\(ingredients.count)")
                     .font(Theme.Fonts.label)
                     .foregroundStyle(Theme.Colors.textTertiary)
+                    .accessibilityLabel(ingredients.count == 1 ? "1 ingredient" : "\(ingredients.count) ingredients")
             }
             if scale != 1 {
                 scaleBanner
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
-            VStack(alignment: .leading, spacing: 10) {
+            // Rows are 44 pt tall at least, since one with an amount is a
+            // button; that sets the spacing too.
+            VStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(ingredients.enumerated()), id: \.element.id) { index, ingredient in
                     if let section = ingredient.section, index == 0 || ingredients[index - 1].section != section {
                         eyebrow(section)
@@ -284,14 +296,16 @@ struct RecipeDetailView: View {
                             .font(.subheadline.weight(.bold))
                             .monospacedDigit()
                             .foregroundStyle(Theme.Colors.accent)
-                            .frame(width: 26, height: 26)
+                            .frame(minWidth: stepBadgeSize, minHeight: stepBadgeSize)
                             .background(Theme.Colors.accentSoft, in: Circle())
-                            .accessibilityLabel("Step \(index + 1)")
+                            .accessibilityLabel("Step \(index + 1) of \(steps.count)")
                         Text(TemperatureConverter.convert(step.text, to: units))
                             .foregroundStyle(Theme.Colors.textPrimary)
                             .lineSpacing(3)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
+                    // "Step 2 of 7, Boil the spaghetti…" as one element.
+                    .accessibilityElement(children: .combine)
                 }
             }
         }
@@ -304,6 +318,7 @@ struct RecipeDetailView: View {
             .tracking(0.8)
             .foregroundStyle(Theme.Colors.textSecondary)
             .padding(.top, Theme.Spacing.xs)
+            .accessibilityAddTraits(.isHeader)
     }
 
     private func ingredientRow(_ ingredient: Ingredient) -> some View {
@@ -320,6 +335,7 @@ struct RecipeDetailView: View {
                 .multilineTextAlignment(.leading)
             Spacer(minLength: 0)
         }
+        .frame(minHeight: 44)
         return Group {
             if parsed.quantity != nil {
                 // Tapping an amount scales the recipe to what you have.
@@ -337,18 +353,30 @@ struct RecipeDetailView: View {
     }
 
     private var scaleBanner: some View {
-        Callout(symbol: "arrow.up.left.and.arrow.down.right", color: .orange) {
-            HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.sm) {
+        // At the accessibility sizes Reset goes under the text.
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Theme.Spacing.xs))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: Theme.Spacing.sm))
+        return Callout(symbol: "arrow.up.left.and.arrow.down.right", color: .orange) {
+            layout {
                 Text(scaleSummary)
                     .font(Theme.Fonts.meta)
                     .contentTransition(.numericText())
-                Spacer(minLength: Theme.Spacing.xs)
-                Button("Reset") {
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Button {
                     setScale(1, reason: nil)
+                } label: {
+                    Text("Reset")
+                        .frame(minWidth: 44, minHeight: 44)
+                        .contentShape(Rectangle())
                 }
                 .font(Theme.Fonts.meta.weight(.semibold))
                 .foregroundStyle(Theme.Colors.accent)
                 .buttonStyle(.pressable)
+                .accessibilityLabel("Reset scale")
+                // The Callout pads its content; keep the panel from growing
+                // around the taller touch target.
+                .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? 0 : -Theme.Spacing.sm)
             }
         }
     }
@@ -382,6 +410,8 @@ struct RecipeDetailView: View {
                     .foregroundStyle(Theme.Colors.textTertiary)
             }
             .foregroundStyle(Theme.Colors.textPrimary)
+            .frame(minWidth: 44, minHeight: 44, alignment: .leading)
+            .contentShape(Rectangle())
         }
         .accessibilityLabel("Scale")
         .accessibilityValue(IngredientScaling.multiplierLabel(scale))
@@ -421,6 +451,8 @@ struct RecipeDetailView: View {
             }
             .foregroundStyle(Theme.Colors.textPrimary)
             .contentTransition(.opacity)
+            .frame(minWidth: 44, minHeight: 44, alignment: .leading)
+            .contentShape(Rectangle())
         }
         .accessibilityLabel("Units")
         .accessibilityValue(units.title)

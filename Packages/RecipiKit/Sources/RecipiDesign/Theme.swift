@@ -6,25 +6,41 @@ import SwiftUI
 public enum Theme {
     public enum Colors {
         /// The page itself.
-        public static let background = Color(light: RGBA(0xFFFFFF), dark: RGBA(0x191919))
+        public static let background = Color(Values.background)
         /// A quieter panel behind grouped content, like Notion's sidebar.
-        public static let surface = Color(light: RGBA(0xF7F7F5), dark: RGBA(0x202020))
+        public static let surface = Color(Values.surface)
         /// Cards and floating things that sit above the page.
-        public static let elevated = Color(light: RGBA(0xFFFFFF), dark: RGBA(0x262626))
+        public static let elevated = Color(Values.elevated)
         /// The faint fill behind a pressed row, a field or an idle chip.
-        public static let fill = Color(light: RGBA(0x37352F, alpha: 0.06), dark: RGBA(0xFFFFFF, alpha: 0.06))
+        public static let fill = Color(Values.fill)
 
-        public static let textPrimary = Color(light: RGBA(0x37352F), dark: RGBA(0xE6E5E3))
-        public static let textSecondary = Color(light: RGBA(0x787774), dark: RGBA(0x9B9B9B))
-        public static let textTertiary = Color(light: RGBA(0xA5A4A0), dark: RGBA(0x6F6F6F))
+        public static let textPrimary = Color(Values.textPrimary)
+        /// Meta text, captions and footnotes.
+        public static let textSecondary = Color(Values.textSecondary)
+        /// The quietest text: counts, finished items, small labels. Still
+        /// passes WCAG AA on the page, surface and elevated colors.
+        public static let textTertiary = Color(Values.textTertiary)
 
         public static let divider = Color(light: RGBA(0x37352F, alpha: 0.09), dark: RGBA(0xFFFFFF, alpha: 0.09))
         public static let border = Color(light: RGBA(0x37352F, alpha: 0.16), dark: RGBA(0xFFFFFF, alpha: 0.14))
 
         /// Paprika. Matches the AccentColor asset.
-        public static let accent = Color(light: RGBA(0xD96B3B), dark: RGBA(0xE8804F))
+        public static let accent = Color(Values.accent)
         public static let accentSoft = Color(light: RGBA(0xD96B3B, alpha: 0.12), dark: RGBA(0xE8804F, alpha: 0.18))
         public static let onAccent = Color.white
+
+        /// The numbers behind the colors above, so `ThemeContrastTests` can
+        /// check text against what it sits on (WCAG AA is 4.5:1 for text).
+        enum Values {
+            static let background = ColorValues(light: RGBA(0xFFFFFF), dark: RGBA(0x191919))
+            static let surface = ColorValues(light: RGBA(0xF7F7F5), dark: RGBA(0x202020))
+            static let elevated = ColorValues(light: RGBA(0xFFFFFF), dark: RGBA(0x262626))
+            static let fill = ColorValues(light: RGBA(0x37352F, alpha: 0.06), dark: RGBA(0xFFFFFF, alpha: 0.06))
+            static let textPrimary = ColorValues(light: RGBA(0x37352F), dark: RGBA(0xE6E5E3))
+            static let textSecondary = ColorValues(light: RGBA(0x5B5B58), dark: RGBA(0xAFAFAF))
+            static let textTertiary = ColorValues(light: RGBA(0x71706B), dark: RGBA(0x8E8E8E))
+            static let accent = ColorValues(light: RGBA(0xD96B3B), dark: RGBA(0xE8804F))
+        }
     }
 
     public enum Spacing {

@@ -27,6 +27,7 @@ private struct ToastModifier: ViewModifier {
                         HStack(spacing: Theme.Spacing.xs) {
                             Image(systemName: symbol)
                                 .foregroundStyle(TagColor.green.foreground)
+                                .accessibilityHidden(true)
                             Text(message)
                                 .foregroundStyle(Theme.Colors.textPrimary)
                         }
@@ -44,6 +45,8 @@ private struct ToastModifier: ViewModifier {
             }
             .task(id: message) {
                 guard let message else { return }
+                // VoiceOver reads it out; the pill itself may be gone before
+                // focus could reach it.
                 AccessibilityNotification.Announcement(message).post()
                 do {
                     try await Task.sleep(for: .seconds(2.2))

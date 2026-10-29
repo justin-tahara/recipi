@@ -10,6 +10,9 @@ public struct EmptyStateView<Actions: View>: View {
     let actions: Actions
 
     @State private var hasAppeared = false
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .title) private var iconSize: CGFloat = 30
+    @ScaledMetric(relativeTo: .title) private var tileSize: CGFloat = 72
 
     public init(
         symbol: String,
@@ -26,11 +29,21 @@ public struct EmptyStateView<Actions: View>: View {
     }
 
     public var body: some View {
+        // Scrolls only when large text makes it taller than the screen.
+        ViewThatFits(in: .vertical) {
+            content
+            ScrollView { content }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onAppear { hasAppeared = true }
+    }
+
+    private var content: some View {
         VStack(spacing: Theme.Spacing.lg) {
             Image(systemName: symbol)
-                .font(.system(size: 30, weight: .semibold))
+                .font(.system(size: iconSize, weight: .semibold))
                 .foregroundStyle(color.foreground)
-                .frame(width: 72, height: 72)
+                .frame(width: tileSize, height: tileSize)
                 .background(color.background, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
                 .bounceEffect(value: hasAppeared)
                 .accessibilityHidden(true)
@@ -39,6 +52,8 @@ public struct EmptyStateView<Actions: View>: View {
                 Text(title)
                     .font(Theme.Fonts.sectionTitle)
                     .foregroundStyle(Theme.Colors.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .accessibilityAddTraits(.isHeader)
                 Text(message)
                     .font(Theme.Fonts.meta)
                     .foregroundStyle(Theme.Colors.textSecondary)
@@ -48,11 +63,12 @@ public struct EmptyStateView<Actions: View>: View {
             VStack(spacing: Theme.Spacing.sm) {
                 actions
             }
-            .frame(maxWidth: 280)
+            // Wider at the accessibility sizes, so button titles don't wrap
+            // a word per line.
+            .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : 280)
         }
         .padding(Theme.Spacing.xl)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onAppear { hasAppeared = true }
+        .frame(maxWidth: .infinity)
     }
 }
 
