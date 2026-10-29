@@ -165,9 +165,9 @@ enum Units {
     ]
 
     static func normalized(firstWordOf remainder: String) -> String? {
-        let word = remainder
-            .trimmingCharacters(in: .whitespaces)
-            .prefix { $0.isLetter }
+        let trimmed = remainder.trimmingCharacters(in: .whitespaces)
+        if let foreign = foreignMatch(atStartOf: trimmed) { return foreign.unit }
+        let word = trimmed.prefix { $0.isLetter }
         guard !word.isEmpty else { return nil }
         let key = String(word)
         // "T" and "t" are the classic tablespoon/teaspoon shorthands, so
