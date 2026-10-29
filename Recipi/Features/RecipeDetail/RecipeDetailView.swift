@@ -74,6 +74,8 @@ struct RecipeDetailView: View {
                     .lineLimit(1)
                     .opacity(isTitleScrolledAway ? 1 : 0)
                     .motion(Motion.smooth, value: isTitleScrolledAway)
+                    // Only once it shows; the page title is read until then.
+                    .accessibilityHidden(!isTitleScrolledAway)
             }
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button {
