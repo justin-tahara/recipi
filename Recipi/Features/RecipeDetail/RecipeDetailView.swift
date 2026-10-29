@@ -10,9 +10,15 @@ struct RecipeDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    /// Servings currently shown. 0 until the view appears, and when the
-    /// recipe doesn't say how many it serves.
-    @State private var servings = 0
+    /// How much every amount is multiplied by; 1 is as written. Set by the
+    /// servings stepper, the Scale menu, or "I have" on an ingredient.
+    @State private var scale: Double = 1
+    /// What the scale was set from, e.g. "2 lb chicken", for the banner.
+    @State private var scaleReason: String?
+    /// The ingredient whose "I have" sheet is open.
+    @State private var scalingIngredient: Ingredient?
+    @State private var isEnteringCustomScale = false
+    @State private var customScaleText = ""
     @State private var isCooking = false
     @State private var isEditing = false
     @State private var toastMessage: String?
@@ -115,10 +121,24 @@ struct RecipeDetailView: View {
         }
         .toast($toastMessage, bottomPadding: 96)
         .sensoryFeedback(.success, trigger: toastMessage) { _, newValue in newValue != nil }
-        .onAppear {
-            if servings == 0 {
-                servings = recipe.servings ?? 0
+        .sheet(item: $scalingIngredient) { ingredient in
+            HaveAmountSheet(ingredient: ingredient.parsed) { factor, reason in
+                setScale(factor, reason: reason)
             }
+            .presentationDetents([.medium, .large])
+            .presentationBackground(Theme.Colors.background)
+        }
+        .alert("Scale by", isPresented: $isEnteringCustomScale) {
+            TextField("Multiplier", text: $customScaleText)
+                .keyboardType(.decimalPad)
+            Button("Scale") {
+                if let factor = ScaleInput.amount(from: customScaleText), factor <= ScaleInput.maximumFactor {
+                    setScale(factor, reason: nil)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Every amount is multiplied by this, for example 1.5 or 1/2.")
         }
     }
 
@@ -165,13 +185,16 @@ struct RecipeDetailView: View {
             }
             if recipe.servings != nil {
                 PropertyRow("Servings", symbol: "person.2") {
-                    ServingsStepper(value: $servings)
+                    ServingsStepper(value: servingsBinding)
                         .fixedSize()
                 }
             } else if let yieldText = recipe.yieldText, !yieldText.isEmpty {
                 PropertyRow("Makes", symbol: "person.2") { Text(yieldText) }
             }
             if !recipe.sortedIngredients.isEmpty {
+                PropertyRow("Scale", symbol: "arrow.up.left.and.arrow.down.right") {
+                    scaleMenu
+                }
                 PropertyRow("Units", symbol: "ruler") {
                     unitsPicker
                 }
@@ -206,24 +229,19 @@ struct RecipeDetailView: View {
                     .font(Theme.Fonts.label)
                     .foregroundStyle(Theme.Colors.textTertiary)
             }
+            if scale != 1 {
+                scaleBanner
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
             VStack(alignment: .leading, spacing: 10) {
                 ForEach(Array(ingredients.enumerated()), id: \.element.id) { index, ingredient in
                     if let section = ingredient.section, index == 0 || ingredients[index - 1].section != section {
                         eyebrow(section)
                     }
-                    let parts = ingredient.parsed.displayParts(scaledBy: scale, in: units)
-                    HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.sm) {
-                        Text("•")
-                            .fontWeight(.bold)
-                            .foregroundStyle(Theme.Colors.accent)
-                            .accessibilityHidden(true)
-                        (Text(parts.amount).fontWeight(.semibold) + Text(parts.rest))
-                            .foregroundStyle(Theme.Colors.textPrimary)
-                            .contentTransition(.numericText())
-                    }
+                    ingredientRow(ingredient)
                 }
             }
-            .motion(Motion.bouncy, value: servings)
+            .motion(Motion.bouncy, value: scale)
             .motion(Motion.smooth, value: units)
         }
     }
@@ -264,6 +282,105 @@ struct RecipeDetailView: View {
             .padding(.top, Theme.Spacing.xs)
     }
 
+    private func ingredientRow(_ ingredient: Ingredient) -> some View {
+        let parsed = ingredient.parsed
+        let parts = parsed.displayParts(scaledBy: scale, in: units)
+        let row = HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.sm) {
+            Text("•")
+                .fontWeight(.bold)
+                .foregroundStyle(Theme.Colors.accent)
+                .accessibilityHidden(true)
+            (Text(parts.amount).fontWeight(.semibold) + Text(parts.rest))
+                .foregroundStyle(Theme.Colors.textPrimary)
+                .contentTransition(.numericText())
+                .multilineTextAlignment(.leading)
+            Spacer(minLength: 0)
+        }
+        return Group {
+            if parsed.quantity != nil {
+                // Tapping an amount scales the recipe to what you have.
+                Button {
+                    scalingIngredient = ingredient
+                } label: {
+                    row
+                }
+                .buttonStyle(.pressable)
+                .accessibilityHint("Scales the recipe to how much you have")
+            } else {
+                row
+            }
+        }
+    }
+
+    private var scaleBanner: some View {
+        Callout(symbol: "arrow.up.left.and.arrow.down.right", color: .orange) {
+            HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.sm) {
+                Text(scaleSummary)
+                    .font(Theme.Fonts.meta)
+                    .contentTransition(.numericText())
+                Spacer(minLength: Theme.Spacing.xs)
+                Button("Reset") {
+                    setScale(1, reason: nil)
+                }
+                .font(Theme.Fonts.meta.weight(.semibold))
+                .foregroundStyle(Theme.Colors.accent)
+                .buttonStyle(.pressable)
+            }
+        }
+    }
+
+    private var scaleSummary: String {
+        let label = IngredientScaling.multiplierLabel(scale)
+        if let scaleReason {
+            return "Scaled \(label) for \(scaleReason)"
+        }
+        return "Scaled \(label)"
+    }
+
+    private var scaleMenu: some View {
+        Menu {
+            ForEach([0.5, 1, 2, 3], id: \.self) { factor in
+                Button(IngredientScaling.multiplierLabel(factor)) {
+                    setScale(factor, reason: nil)
+                }
+            }
+            Button("Custom…", systemImage: "slider.horizontal.3") {
+                customScaleText = ""
+                isEnteringCustomScale = true
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(IngredientScaling.multiplierLabel(scale))
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Theme.Colors.textTertiary)
+            }
+            .foregroundStyle(Theme.Colors.textPrimary)
+        }
+        .accessibilityLabel("Scale")
+        .accessibilityValue(IngredientScaling.multiplierLabel(scale))
+    }
+
+    private var servingsBinding: Binding<Int> {
+        Binding {
+            let base = recipe.servings ?? 1
+            return min(99, max(1, Int((Double(base) * scale).rounded())))
+        } set: { newValue in
+            guard let base = recipe.servings, base > 0 else { return }
+            scale = Double(newValue) / Double(base)
+            scaleReason = nil
+        }
+    }
+
+    private func setScale(_ factor: Double, reason: String?) {
+        withMotion(Motion.bouncy, reduceMotion: reduceMotion) {
+            scale = factor
+            scaleReason = factor == 1 ? nil : reason
+        }
+    }
+
     private var unitsPicker: some View {
         Menu {
             Picker("Units", selection: Binding(get: { units }, set: { unitsOverride = $0 })) {
@@ -294,11 +411,6 @@ struct RecipeDetailView: View {
 
     private var displayTitle: String {
         recipe.title.isEmpty ? "Untitled recipe" : recipe.title
-    }
-
-    private var scale: Double {
-        guard let base = recipe.servings, base > 0, servings > 0 else { return 1 }
-        return Double(servings) / Double(base)
     }
 
     private static func displayHost(of url: URL) -> String {
