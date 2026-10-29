@@ -72,6 +72,7 @@ public struct RecipeImporter: Sendable {
     /// Imports `url`, noting in `trace` what was fetched and why it failed.
     /// The nightly live check reports from the trace.
     func importRecipe(from url: URL, trace: inout ImportTrace) async throws -> RecipeDraft {
+        let url = SharedLink.pageURL(for: url)
         // URLSession follows HTTP redirects itself; `page.url` is where it
         // ended up.
         var page = try await fetchPage(url, trace: &trace)
@@ -80,7 +81,7 @@ public struct RecipeImporter: Sendable {
             // Parse whatever came back, even with an error status: if a
             // recipe is there, it's the recipe.
             if let draft = try? Self.parse(html: page.html, sourceURL: page.url) {
-                return draft
+                return Self.tidied(draft)
             }
             guard hop < Self.maxFollowUps,
                   let next = Self.followUpURL(in: page.html, pageURL: page.url),
@@ -96,9 +97,16 @@ public struct RecipeImporter: Sendable {
         if rendersJavaScript, problem?.error.mightRenderPastIt ?? true,
            let draft = await Self.renderedRecipe(at: page.url) {
             trace.usedRenderedPage = true
-            return draft
+            return Self.tidied(draft)
         }
         throw problem?.error ?? RecipeImportError.noRecipeFound
+    }
+
+    /// The draft as it's saved: its link without tracking parameters.
+    private static func tidied(_ draft: RecipeDraft) -> RecipeDraft {
+        var draft = draft
+        draft.sourceURL = draft.sourceURL.map(SharedLink.removingTracking(from:))
+        return draft
     }
 
     public static func parse(html: String, sourceURL: URL?) throws -> RecipeDraft {
@@ -278,15 +286,29 @@ public struct RecipeImporter: Sendable {
     }
 
     /// Where a page without recipe data sends us instead: a meta refresh
-    /// (some link shorteners use one), or an AMP page's canonical page.
+    /// (some link shorteners use one), an AMP page's canonical page, or the
+    /// story an Apple News link stands for.
     static func followUpURL(in html: String, pageURL: URL) -> URL? {
         let target = HTMLText.metaRefreshTarget(in: html)
             ?? (isAMP(html, url: pageURL) ? HTMLText.linkHref(rel: "canonical", in: html) : nil)
+            ?? appleNewsTarget(in: html, pageURL: pageURL)
         guard let target,
               let url = URL(string: target, relativeTo: pageURL)?.absoluteURL,
               let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https",
               url != pageURL else { return nil }
         return url
+    }
+
+    /// An apple.news link serves a small page whose script sends the browser
+    /// on to the publisher's page; this is that page's address.
+    static func appleNewsTarget(in html: String, pageURL: URL) -> String? {
+        guard pageURL.host()?.lowercased() == "apple.news",
+              let target = HTMLText.captures(of: #"redirectToUrl(?:AfterTimeout)?\(\s*["']([^"']+)["']"#, in: html).first else {
+            return nil
+        }
+        let unescaped = target.replacingOccurrences(of: "\\/", with: "/")
+        guard URL(string: unescaped)?.host()?.lowercased() != "apple.news" else { return nil }
+        return unescaped
     }
 
     /// AMP pages mark their `<html>` tag with `amp` or `⚡`; some are only
@@ -342,8 +364,8 @@ struct ImportTrace: Sendable {
         var mimeType: String?
     }
 
-    /// Every page fetched, in order: the link, then any meta refresh or AMP
-    /// canonical it led to.
+    /// Every page fetched, in order: the link, then any meta refresh, AMP
+    /// canonical or Apple News target it led to.
     var fetches: [Fetch] = []
     /// The request that failed without an HTTP answer, and how.
     var networkError: String?

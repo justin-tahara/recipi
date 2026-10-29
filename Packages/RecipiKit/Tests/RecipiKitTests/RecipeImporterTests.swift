@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 import Testing
 @testable import RecipiKit
 
@@ -110,6 +111,85 @@ struct SharedLinkTests {
     @Test(arguments: ["", "no link in here", "ftp://example.com/file", "https://"])
     func findsNothingWithoutAWebLink(text: String) {
         #expect(SharedLink.firstWebURL(in: text) == nil)
+    }
+
+    @Test(arguments: [
+        ("Check this out https://example.com/pie via @recipeapp", "https://example.com/pie"),
+        ("Check this out! https://example.com/pie\nShared from Example Kitchen", "https://example.com/pie"),
+        // A link written out wins over a bare domain mentioned first.
+        ("From example.com: https://example.com/recipes/pie/", "https://example.com/recipes/pie/"),
+        ("Saved on www.example.org, recipe at https://example.com/pie and https://example.com/tart", "https://example.com/pie"),
+        ("Try this (https://example.com/pie).", "https://example.com/pie"),
+    ])
+    func findsTheLinkAmongOtherWords(text: String, expected: String) {
+        #expect(SharedLink.firstWebURL(in: text)?.absoluteString == expected)
+    }
+
+    @Test func takesABareDomainWhenThereIsNothingElse() {
+        #expect(SharedLink.firstWebURL(in: "Recipe is on www.example.com, scroll down")?.host() == "www.example.com")
+    }
+
+    @Test(arguments: [
+        // Google's AMP viewer: `s/` means https.
+        ("https://www.google.com/amp/s/www.example.com/pie/amp/", "https://www.example.com/pie/amp/"),
+        ("https://www.google.com/amp/www.example.com/pie/", "http://www.example.com/pie/"),
+        ("https://www.google.co.uk/amp/s/example.com/pie/amp/?ref=x#step-2", "https://example.com/pie/amp/?ref=x#step-2"),
+        // The AMP cache.
+        ("https://www-example-com.cdn.ampproject.org/c/s/www.example.com/pie/amp/", "https://www.example.com/pie/amp/"),
+        ("https://www-example-com.cdn.ampproject.org/v/s/www.example.com/pie/amp/", "https://www.example.com/pie/amp/"),
+        // Redirect links.
+        ("https://www.google.com/url?sa=t&q=https://www.example.com/pie/&usg=abc", "https://www.example.com/pie/"),
+        ("https://www.google.com/url?url=https%3A%2F%2Fexample.com%2Fpie%3Fid%3D4", "https://example.com/pie?id=4"),
+        ("https://l.facebook.com/l.php?u=https%3A%2F%2Fexample.com%2Fpie%2F&h=AT0", "https://example.com/pie/"),
+        // A redirect link to an AMP viewer.
+        ("https://www.google.com/url?q=https://www.google.com/amp/s/example.com/pie/amp/", "https://example.com/pie/amp/"),
+        // Ordinary links stay as they are.
+        ("https://example.com/pie/?utm_source=x", "https://example.com/pie/?utm_source=x"),
+        ("https://www.google.com/search?q=pie", "https://www.google.com/search?q=pie"),
+        ("https://example.com/amp/s/other.com/pie", "https://example.com/amp/s/other.com/pie"),
+    ])
+    func unwrapsAMPAndRedirectLinks(link: String, expected: String) throws {
+        let url = try #require(URL(string: link))
+        #expect(SharedLink.pageURL(for: url).absoluteString == expected)
+    }
+
+    @Test(arguments: [
+        ("https://example.com/pie/?utm_source=ig&utm_medium=social", "https://example.com/pie/"),
+        ("https://example.com/pie?id=4&utm_campaign=fall#wprm-recipe-container-12", "https://example.com/pie?id=4#wprm-recipe-container-12"),
+        ("https://example.com/pie?fbclid=IwAR0abc", "https://example.com/pie"),
+        ("https://example.com/pie?gclid=1&mc_cid=2&mc_eid=3&igshid=4", "https://example.com/pie"),
+        // Parameters that might matter stay.
+        ("https://example.com/pie?ref=share&page=2", "https://example.com/pie?ref=share&page=2"),
+        ("https://example.com/search?q=caf%C3%A9&utm_source=x", "https://example.com/search?q=caf%C3%A9"),
+        ("https://example.com/pie", "https://example.com/pie"),
+    ])
+    func removesTrackingParameters(link: String, expected: String) throws {
+        let url = try #require(URL(string: link))
+        #expect(SharedLink.removingTracking(from: url).absoluteString == expected)
+    }
+
+    @Test func matchesLinksToTheSamePage() throws {
+        func key(_ link: String) throws -> String { SharedLink.sourceKey(for: try #require(URL(string: link))) }
+        let saved = try key("https://www.example.com/pie/")
+        #expect(try key("http://example.com/pie") == saved)
+        #expect(try key("https://Example.com/pie/?utm_source=ig#wprm-recipe-container-12") == saved)
+        #expect(try key("https://example.com/pie/?id=2") != saved)
+        #expect(try key("https://example.com/tart/") != saved)
+    }
+
+    @Test func findsTheSavedRecipeFromTheSamePage() throws {
+        let context = ModelContext(try RecipiStore.makeContainer(inMemory: true))
+        let pie = Recipe(title: "Apple Pie")
+        context.insert(pie)
+        pie.sourceURL = URL(string: "https://www.example.com/apple-pie/")
+        let handwritten = Recipe(title: "Grandma's Stew")
+        context.insert(handwritten)
+        try context.save()
+
+        let shared = try #require(URL(string: "https://example.com/apple-pie?utm_source=pinterest"))
+        #expect(try Recipe.saved(from: shared, in: context)?.title == "Apple Pie")
+        let other = try #require(URL(string: "https://www.example.com/pear-tart/"))
+        #expect(try Recipe.saved(from: other, in: context) == nil)
     }
 }
 

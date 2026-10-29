@@ -43,6 +43,21 @@ struct ShareImportView: View {
                         .font(Theme.Fonts.rowTitle)
                         .foregroundStyle(Theme.Colors.textPrimary)
                         .multilineTextAlignment(.center)
+                case .alreadySaved(let title, _):
+                    statusIcon("checkmark", color: .blue)
+                    Text("Already in recipi")
+                        .font(Theme.Fonts.rowTitle)
+                        .foregroundStyle(Theme.Colors.textPrimary)
+                    Text("“\(title)” is already in your library.")
+                        .font(Theme.Fonts.meta)
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                        .multilineTextAlignment(.center)
+                    Button("Done") { model.close() }
+                        .buttonStyle(.recipiPrimary)
+                    Button("Save another copy") {
+                        Task { await model.saveAnotherCopy() }
+                    }
+                    .buttonStyle(.recipiSecondary)
                 case .failed(let message):
                     statusIcon("exclamationmark.triangle.fill", color: .orange)
                     Text(message)
@@ -70,13 +85,15 @@ struct ShareImportView: View {
     }
 
     /// 0 while importing or saving, 1 once saved, 2 on failure, 3 while the
-    /// recipe is shown before saving. Drives the animation between states.
+    /// recipe is shown before saving, 4 when it was already saved. Drives
+    /// the animation between states.
     private var phase: Int {
         switch model.state {
         case .importing, .saving: 0
         case .saved: 1
         case .failed: 2
         case .preview: 3
+        case .alreadySaved: 4
         }
     }
 
