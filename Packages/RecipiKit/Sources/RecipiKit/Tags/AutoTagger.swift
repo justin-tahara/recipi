@@ -56,7 +56,9 @@ public enum AutoTagger {
         }
 
         for diet in draft.diets {
-            if let term = TagVocabulary.term(matching: diet), term.kind == .diet || term.kind == .trait,
+            // "https://schema.org/VeganDiet" or "VeganDiet".
+            let name = diet.split(whereSeparator: { $0 == "/" || $0 == ":" || $0 == "#" }).last.map(String.init) ?? diet
+            if let term = TagVocabulary.term(matching: name), term.kind == .diet || term.kind == .trait,
                !vocabulary.contains(term) {
                 vocabulary.append(term)
             }
