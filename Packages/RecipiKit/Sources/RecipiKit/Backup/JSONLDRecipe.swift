@@ -124,6 +124,7 @@ struct RecipiExtension: Codable {
     var notes: String
     var isFavorite: Bool
     var tags: [String]
+    var tagSettings: [TagSetting]
     var ingredients: [Line]
     var steps: [Line]
     var createdAt: String?
@@ -133,6 +134,13 @@ struct RecipiExtension: Codable {
     var translatedLanguage: String?
     var keepsOriginalLanguage: Bool
     var translation: Translation?
+
+    /// A tag's kind and color, for tags that have them set.
+    struct TagSetting: Codable {
+        var name: String
+        var kind: String?
+        var color: String?
+    }
 
     /// The text before and after translating (`Recipe.translationRecord`).
     struct Translation: Codable {
@@ -188,7 +196,7 @@ struct RecipiExtension: Codable {
 
     enum CodingKeys: String, CodingKey {
         case id, servings, yieldText, prepTime, cookTime, totalTime
-        case notes, isFavorite, tags, ingredients, steps, createdAt, updatedAt, cookLog
+        case notes, isFavorite, tags, tagSettings, ingredients, steps, createdAt, updatedAt, cookLog
         case originalLanguage, translatedLanguage, keepsOriginalLanguage, translation
     }
 
@@ -202,6 +210,7 @@ struct RecipiExtension: Codable {
         notes = recipe.notes
         isFavorite = recipe.isFavorite
         tags = recipe.tags
+        tagSettings = recipe.tagSettings.map { TagSetting(name: $0.name, kind: $0.kindRaw, color: $0.colorOverride) }
         ingredients = recipe.ingredients.map { Line($0) }
         steps = recipe.steps.map { Line($0) }
         createdAt = Timestamp.string(from: recipe.createdAt)
@@ -230,6 +239,7 @@ struct RecipiExtension: Codable {
         notes = try container.decodeIfPresent(String.self, forKey: .notes) ?? ""
         isFavorite = try container.decodeIfPresent(Bool.self, forKey: .isFavorite) ?? false
         tags = try container.decodeIfPresent([String].self, forKey: .tags) ?? []
+        tagSettings = try container.decodeIfPresent([TagSetting].self, forKey: .tagSettings) ?? []
         ingredients = try container.decodeIfPresent([Line].self, forKey: .ingredients) ?? []
         steps = try container.decodeIfPresent([Line].self, forKey: .steps) ?? []
         createdAt = try container.decodeIfPresent(String.self, forKey: .createdAt)
@@ -308,6 +318,9 @@ struct JSONLDRecipeFile: Decodable {
         recipe.notes = recipi.notes
         recipe.isFavorite = recipi.isFavorite
         recipe.tags = recipi.tags
+        recipe.tagSettings = recipi.tagSettings.map {
+            BackupTagSetting(name: $0.name, kindRaw: $0.kind, colorOverride: $0.color)
+        }
         recipe.ingredients = recipi.ingredients.map(\.draftLine)
         recipe.steps = recipi.steps.map(\.draftLine)
         recipe.originalLanguage = recipi.originalLanguage

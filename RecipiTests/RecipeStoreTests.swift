@@ -30,7 +30,8 @@ struct RecipeStoreTests {
         #expect(recipe.sortedIngredients.map(\.text) == ["1 cup red lentils", "2 tbsp ghee"])
         #expect(recipe.sortedIngredients.map(\.section) == [nil, "Tadka"])
         #expect(recipe.sortedSteps.map(\.text) == ["Simmer the lentils until soft.", "Pour the hot ghee over the dal."])
-        #expect(recipe.sortedTags.map(\.name) == ["Dinner", "Vegetarian"])
+        // 30 minutes in all, so saving also tags it Quick (see AutoTagger).
+        #expect(recipe.sortedTags.map(\.name) == ["Dinner", "Quick", "Vegetarian"])
     }
 
     /// CloudKit rules out unique constraints, so tags are deduped by hand.

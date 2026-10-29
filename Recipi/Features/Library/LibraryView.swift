@@ -9,7 +9,7 @@ struct LibraryView: View {
     @Query(sort: \Recipe.title) private var recipes: [Recipe]
 
     @State private var searchText = ""
-    @State private var selectedTag: String?
+    @State private var tagFilter = TagFilter()
     @State private var isShowingImport = false
     @State private var isShowingSettings = false
     @State private var newRecipe: Recipe?
@@ -56,9 +56,10 @@ struct LibraryView: View {
 
     private var recipeList: some View {
         let visible = filteredRecipes
+        let tags = libraryTags
         return List {
-            if !allTags.isEmpty {
-                TagFilterBar(tags: allTags, selection: $selectedTag)
+            if !tags.isEmpty {
+                TagFilterBar(tags: tags, filter: $tagFilter)
                     .listRowInsets(EdgeInsets(top: Theme.Spacing.xxs, leading: 0, bottom: Theme.Spacing.xs, trailing: 0))
                     .listRowSeparator(.hidden)
                     .listRowBackground(Theme.Colors.background)
@@ -138,15 +139,17 @@ struct LibraryView: View {
         }
     }
 
-    private var allTags: [String] {
-        Set(recipes.flatMap { $0.sortedTags.map(\.name) }).sorted()
+    /// Tags on at least one recipe, once each.
+    private var libraryTags: [Tag] {
+        var seen = Set<PersistentIdentifier>()
+        return recipes.flatMap { $0.tags ?? [] }.filter { seen.insert($0.persistentModelID).inserted }
     }
 
     private var filteredRecipes: [Recipe] {
         let query = searchText.trimmingCharacters(in: .whitespaces)
         let sort = preferences.librarySort
         return recipes.filter { recipe in
-            if let selectedTag, !recipe.sortedTags.contains(where: { $0.name == selectedTag }) {
+            if !tagFilter.matches(recipe.tagFacets) {
                 return false
             }
             guard !query.isEmpty else { return true }
@@ -173,66 +176,6 @@ struct LibraryView: View {
         for index in offsets {
             modelContext.delete(visible[index])
         }
-    }
-}
-
-/// "All" plus one chip per tag. The highlight slides between chips.
-private struct TagFilterBar: View {
-    let tags: [String]
-    @Binding var selection: String?
-
-    @Namespace private var namespace
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Theme.Spacing.xs) {
-                chip(for: nil)
-                ForEach(tags, id: \.self) { tag in
-                    chip(for: tag)
-                }
-            }
-            .padding(.horizontal, Theme.Spacing.page)
-            .padding(.vertical, 2)
-        }
-        .sensoryFeedback(.selection, trigger: selection)
-    }
-
-    private func chip(for tag: String?) -> some View {
-        let isSelected = selection == tag
-        let color = tag.map(TagColor.forName) ?? .gray
-
-        return Button {
-            withMotion(Motion.snappy, reduceMotion: reduceMotion) {
-                selection = tag
-            }
-        } label: {
-            HStack(spacing: 6) {
-                if tag != nil {
-                    Circle()
-                        .fill(color.foreground)
-                        .frame(width: 7, height: 7)
-                }
-                Text(tag ?? "All")
-            }
-            .font(Theme.Fonts.label)
-            .foregroundStyle(isSelected ? (tag == nil ? Theme.Colors.textPrimary : color.foreground) : Theme.Colors.textSecondary)
-            .padding(.horizontal, Theme.Spacing.sm)
-            .padding(.vertical, 7)
-            .background {
-                if isSelected {
-                    Capsule()
-                        .fill(color.background)
-                        .matchedGeometryEffect(id: "selection", in: namespace)
-                } else {
-                    Capsule()
-                        .strokeBorder(Theme.Colors.border, lineWidth: 0.5)
-                }
-            }
-        }
-        .buttonStyle(.pressable)
-        .accessibilityLabel(tag ?? "All recipes")
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
@@ -297,7 +240,7 @@ private struct RecipeRow: View {
                     .foregroundStyle(Theme.Colors.textSecondary)
                 }
                 ForEach(tags.prefix(2)) { tag in
-                    TagPill(tag.name)
+                    TagPill(tag.name, color: tag.color)
                 }
                 if tags.count > 2 {
                     Text("+\(tags.count - 2)")

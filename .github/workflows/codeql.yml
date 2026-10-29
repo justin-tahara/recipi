@@ -1,0 +1,51 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "17 9 * * 1"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze Swift
+    runs-on: macos-15
+    timeout-minutes: 45
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate project
+        run: xcodegen
+
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: swift
+          build-mode: manual
+
+      # CodeQL traces this build, so it has to compile everything from
+      # scratch: the app, the share extension and RecipiKit.
+      - name: Build
+        run: |
+          xcodebuild build \
+            -project Recipi.xcodeproj \
+            -scheme Recipi \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO
+
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:swift

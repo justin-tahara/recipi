@@ -157,6 +157,7 @@ what was saved.
 | `notes` | string | Your notes. |
 | `isFavorite` | bool | Favorited. |
 | `tags` | [string] | Tag names. |
+| `tagSettings` | [setting] | For tags with a kind or color set: `{ "name", "kind"?, "color"? }`, where `kind` is the tag kind (`cuisine`, `meal`, `diet`, `trait`, or `none` when you cleared it) and `color` a tag color name. |
 | `ingredients` | [line] | In order. A line is `{ "text", "section"? }`. |
 | `steps` | [line] | In order, same shape. |
 | `createdAt`, `updatedAt` | string | ISO 8601 in UTC with milliseconds. |
@@ -192,7 +193,8 @@ Times are kept to the millisecond.
 - A recipe file that can't be read is skipped and counted. A missing or
   damaged photo leaves its recipe without that photo, and is counted too.
 - Tags are matched by name, ignoring case, so restored recipes join your
-  existing tags.
+  existing tags. A tag's kind and color from the backup fill in only what
+  the tag doesn't have yet; a kind or color you already chose stays.
 - Recipes made before recipi had IDs get one the first time you export,
   and keep it.
 

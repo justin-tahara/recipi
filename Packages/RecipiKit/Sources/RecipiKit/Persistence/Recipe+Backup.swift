@@ -37,7 +37,12 @@ extension BackupRecipe {
         isFavorite = recipe.isFavorite
         ingredients = recipe.sortedIngredients.map { RecipeDraft.Line($0.text, section: $0.section) }
         steps = recipe.sortedSteps.map { RecipeDraft.Line($0.text, section: $0.section) }
-        tags = recipe.sortedTags.map(\.name)
+        let sortedTags = recipe.sortedTags
+        tags = sortedTags.map(\.name)
+        tagSettings = sortedTags.compactMap { tag in
+            guard tag.kindRaw != nil || tag.colorOverride != nil else { return nil }
+            return BackupTagSetting(name: tag.name, kindRaw: tag.kindRaw, colorOverride: tag.colorOverride)
+        }
         photoData = includingPhotos ? recipe.photoData : nil
         cookLog = recipe.sortedCookLogs.map { log in
             BackupCook(cookedAt: log.cookedAt, note: log.note, photoData: includingPhotos ? log.photoData : nil)
@@ -163,6 +168,12 @@ extension Recipe {
         for name in backup.tags {
             guard let tag = Tag.findOrCreate(named: name, in: context),
                   !tags.contains(where: { $0 === tag }) else { continue }
+            // Fills in a kind or color the tag doesn't have yet, so a
+            // choice already made in this library is never overwritten.
+            if let setting = backup.tagSettings.first(where: { $0.name.caseInsensitiveCompare(name) == .orderedSame }) {
+                if tag.kindRaw == nil { tag.kindRaw = setting.kindRaw }
+                if tag.colorOverride == nil { tag.colorOverride = setting.colorOverride }
+            }
             tags.append(tag)
         }
         recipe.tags = tags

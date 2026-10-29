@@ -25,6 +25,8 @@ public struct BackupRecipe: Sendable, Equatable, Identifiable {
     /// In order, each with its section heading.
     public var steps: [RecipeDraft.Line] = []
     public var tags: [String] = []
+    /// Kind and color for the tags that have them set, by name.
+    public var tagSettings: [BackupTagSetting] = []
     /// The photo's bytes exactly as recipi stored them (usually JPEG).
     public var photoData: Data?
     /// Every time it was cooked, newest first.
@@ -44,6 +46,19 @@ public struct BackupRecipe: Sendable, Equatable, Identifiable {
         self.title = title
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+    }
+}
+
+/// A tag's own settings (`Tag.kindRaw`, `Tag.colorOverride`).
+public struct BackupTagSetting: Sendable, Equatable {
+    public var name: String
+    public var kindRaw: String?
+    public var colorOverride: String?
+
+    public init(name: String, kindRaw: String? = nil, colorOverride: String? = nil) {
+        self.name = name
+        self.kindRaw = kindRaw
+        self.colorOverride = colorOverride
     }
 }
 

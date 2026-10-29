@@ -139,6 +139,8 @@ public enum SchemaRecipeParser {
         draft.ingredients = strings(node["recipeIngredient"] ?? node["ingredients"]).map { RecipeDraft.Line($0) }
         draft.steps = steps(node["recipeInstructions"])
         draft.tags = tags(from: node)
+        draft.nutrition = SchemaTagHints.nutrition(from: node["nutrition"])
+        draft.diets = SchemaTagHints.diets(from: node["suitableForDiet"])
 
         guard !draft.ingredients.isEmpty || !draft.steps.isEmpty else { return nil }
         return draft

@@ -125,6 +125,10 @@ private func sampleBackups() -> [BackupRecipe] {
         .init("Serve hot, or cold the next day."),
     ]
     pasta.tags = ["Dinner", "Quick", "Vegetarian"]
+    pasta.tagSettings = [
+        BackupTagSetting(name: "Dinner", kindRaw: "meal"),
+        BackupTagSetting(name: "Vegetarian", kindRaw: "diet", colorOverride: "green"),
+    ]
     pasta.photoData = Data([0xFF, 0xD8, 0xFF, 0xE0] + (0..<500).map { UInt8(truncatingIfNeeded: $0) })
     // Newest first, as snapshots list them.
     pasta.cookLog = [
@@ -415,6 +419,24 @@ struct BackupStoreTests {
         #expect(try RecipiBackup.restore(backups, into: context) == RestoreSummary(restored: 3, skippedDuplicates: 0))
         #expect(try RecipiBackup.restore(backups, into: context) == RestoreSummary(restored: 0, skippedDuplicates: 3))
         #expect(try context.fetchCount(FetchDescriptor<Recipe>()) == 3)
+    }
+
+    @Test func restoreFillsInTagSettingsButKeepsExistingOnes() throws {
+        let context = ModelContext(try RecipiStore.makeContainer(inMemory: true))
+        let dinner = RecipiKit.Tag(name: "dinner")
+        dinner.colorOverride = "red"
+        context.insert(dinner)
+        try context.save()
+
+        try RecipiBackup.restore(sampleBackups(), into: context)
+        let tags = try context.fetch(FetchDescriptor<RecipiKit.Tag>())
+        let byName = Dictionary(uniqueKeysWithValues: tags.map { ($0.name, $0) })
+        #expect(byName["Dinner"] == nil) // joined the existing "dinner"
+        #expect(byName["dinner"]?.colorOverride == "red")
+        #expect(byName["dinner"]?.kindRaw == "meal")
+        #expect(byName["Vegetarian"]?.kindRaw == "diet")
+        #expect(byName["Vegetarian"]?.colorOverride == "green")
+        #expect(byName["Quick"]?.kindRaw == nil)
     }
 
     @Test func sameSourceLinkCountsAsDuplicate() throws {
