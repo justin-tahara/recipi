@@ -35,3 +35,56 @@ jobs:
             -scheme Recipi \
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO
+
+      # Device names change with each Xcode, so pick an available iPhone on
+      # the newest iOS runtime this SDK can run, and boot it while we build.
+      - name: Pick an iPhone simulator
+        run: |
+          sdk_version=$(xcrun --sdk iphonesimulator --show-sdk-version)
+          udid=$(xcrun simctl list devices available -j | python3 -c '
+          import json, re, sys
+          sdk = tuple(int(part) for part in sys.argv[1].split("."))
+          candidates = []
+          for runtime, devices in json.load(sys.stdin)["devices"].items():
+              match = re.search(r"iOS-(\d+)-(\d+)", runtime)
+              if not match:
+                  continue
+              version = (int(match.group(1)), int(match.group(2)))
+              if version > sdk:
+                  continue
+              for device in devices:
+                  if device["name"].startswith("iPhone"):
+                      candidates.append((version, -len(device["name"]), device["name"], device["udid"]))
+          if not candidates:
+              sys.exit("No available iPhone simulator for iOS " + sys.argv[1])
+          version, _, name, udid = max(candidates)
+          print(f"Using {name} (iOS {version[0]}.{version[1]})", file=sys.stderr)
+          print(udid)
+          ' "$sdk_version")
+          echo "SIMULATOR_UDID=$udid" >> "$GITHUB_ENV"
+          xcrun simctl boot "$udid" || true
+
+      - name: Build tests
+        run: |
+          xcodebuild build-for-testing \
+            -project Recipi.xcodeproj \
+            -scheme Recipi \
+            -destination "id=$SIMULATOR_UDID" \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Run unit and UI tests on the iOS Simulator
+        run: |
+          xcodebuild test-without-building \
+            -project Recipi.xcodeproj \
+            -scheme Recipi \
+            -destination "id=$SIMULATOR_UDID" \
+            -resultBundlePath build/RecipiTests.xcresult \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: RecipiTests.xcresult
+          path: build/RecipiTests.xcresult
+          if-no-files-found: ignore

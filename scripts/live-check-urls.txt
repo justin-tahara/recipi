@@ -1,0 +1,26 @@
+# Recipe pages the nightly live check imports (.github/workflows/live-import-check.yml).
+# One URL per line; lines starting with # are ignored.
+#
+# This is a starting list of well-known recipe pages on popular sites. It was
+# written without fetching them, so if the first runs report a page as gone
+# (404) rather than unreadable, replace it with another recipe from that site.
+# When a site fails because of its markup, capture the page with
+# scripts/capture_fixture.py and add it as a fixture before fixing the parser.
+
+https://www.allrecipes.com/recipe/10813/best-chocolate-chip-cookies/
+https://www.bbcgoodfood.com/recipes/easy-pancakes
+https://www.kingarthurbaking.com/recipes/classic-sandwich-bread-recipe
+https://www.bonappetit.com/recipe/bas-best-chocolate-chip-cookies
+https://www.seriouseats.com/the-food-lab-best-chocolate-chip-cookie-recipe
+https://www.budgetbytes.com/homemade-meatballs/
+https://www.recipetineats.com/beef-stroganoff/
+https://smittenkitchen.com/2011/04/chocolate-chip-cookies/
+https://www.justonecookbook.com/oyakodon/
+https://thewoksoflife.com/kung-pao-chicken/
+https://www.maangchi.com/recipe/kimchi-jjigae
+https://minimalistbaker.com/easy-vegan-pancakes/
+https://cooking.nytimes.com/recipes/1015819-chocolate-chip-cookies
+https://www.simplyrecipes.com/recipes/banana_bread/
+https://www.marmiton.org/recettes/recette_boeuf-bourguignon_18889.aspx
+https://ricette.giallozafferano.it/Spaghetti-alla-Carbonara.html
+https://www.chefkoch.de/rezepte/1109021216794929/Kaesespaetzle.html

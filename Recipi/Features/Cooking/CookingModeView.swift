@@ -9,12 +9,14 @@ import UIKit
 struct CookingModeView: View {
     let recipe: Recipe
     let scale: Double
+    let units: MeasurementPreference
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var currentStep = 0
     @State private var checkedIngredients: Set<PersistentIdentifier> = []
     @State private var showsIngredients = false
+    @State private var isLoggingCook = false
 
     var body: some View {
         let steps = recipe.sortedSteps
@@ -28,7 +30,7 @@ struct CookingModeView: View {
 
                 TabView(selection: $currentStep) {
                     ForEach(Array(steps.enumerated()), id: \.element.id) { index, step in
-                        StepPage(step: step, number: index + 1, count: steps.count)
+                        StepPage(step: step, number: index + 1, count: steps.count, units: units)
                             .tag(index)
                     }
                 }
@@ -65,12 +67,19 @@ struct CookingModeView: View {
                 IngredientChecklist(
                     ingredients: ingredients,
                     scale: scale,
+                    units: units,
                     checked: $checkedIngredients
                 )
                 .presentationDetents([.medium, .large])
                 .presentationBackground(Theme.Colors.background)
             }
             .sensoryFeedback(.selection, trigger: currentStep)
+            // Finishing offers to log the cook; either way cooking mode
+            // closes once the sheet does.
+            .sheet(isPresented: $isLoggingCook, onDismiss: { dismiss() }) {
+                LogCookSheet(recipe: recipe, cancelTitle: "Skip")
+                    .presentationDetents([.medium, .large])
+            }
         }
         .tint(Theme.Colors.accent)
         .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
@@ -91,7 +100,7 @@ struct CookingModeView: View {
 
             Button {
                 if isLast {
-                    dismiss()
+                    isLoggingCook = true
                 } else {
                     go(to: currentStep + 1)
                 }
@@ -103,6 +112,7 @@ struct CookingModeView: View {
                 }
             }
             .buttonStyle(.recipiPrimary)
+            .accessibilityIdentifier("cooking.next")
         }
         .padding(.horizontal, Theme.Spacing.page)
         .padding(.top, Theme.Spacing.sm)
@@ -140,6 +150,7 @@ private struct StepPage: View {
     let step: Step
     let number: Int
     let count: Int
+    let units: MeasurementPreference
 
     var body: some View {
         ScrollView {
@@ -158,7 +169,7 @@ private struct StepPage: View {
                     TagPill(section)
                 }
 
-                Text(step.text)
+                Text(TemperatureConverter.convert(step.text, to: units))
                     .font(Theme.Fonts.step)
                     .foregroundStyle(Theme.Colors.textPrimary)
                     .lineSpacing(6)
@@ -175,6 +186,7 @@ private struct StepPage: View {
 private struct IngredientChecklist: View {
     let ingredients: [Ingredient]
     let scale: Double
+    let units: MeasurementPreference
     @Binding var checked: Set<PersistentIdentifier>
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -237,7 +249,7 @@ private struct IngredientChecklist: View {
         } label: {
             HStack(spacing: Theme.Spacing.sm) {
                 Checkbox(isOn: isChecked)
-                Text(ingredient.parsed.scaled(by: scale))
+                Text(ingredient.parsed.display(scaledBy: scale, in: units))
                     .strikethrough(isChecked, color: Theme.Colors.textTertiary)
                     .foregroundStyle(isChecked ? Theme.Colors.textTertiary : Theme.Colors.textPrimary)
                 Spacer(minLength: 0)

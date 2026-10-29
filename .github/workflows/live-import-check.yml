@@ -1,0 +1,42 @@
+name: Live import check
+
+# Imports a list of real recipe pages (scripts/live-check-urls.txt) through
+# the real parsers every night, so a site that changes its markup shows up
+# here before someone reports it. It runs only on a schedule or by hand and
+# never on pull requests, so it can't block one.
+
+on:
+  schedule:
+    - cron: "23 9 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-import-check
+  cancel-in-progress: true
+
+jobs:
+  live-check:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Import every site on the list
+        env:
+          RECIPI_LIVE_CHECK: "1"
+          RECIPI_LIVE_CHECK_URLS: ${{ github.workspace }}/scripts/live-check-urls.txt
+          RECIPI_LIVE_CHECK_REPORT: ${{ runner.temp }}/live-import-check.md
+        run: swift test --package-path Packages/RecipiKit --filter LiveImportCheck
+
+      - name: Write the summary
+        if: always()
+        run: |
+          report="$RUNNER_TEMP/live-import-check.md"
+          if [ -f "$report" ]; then
+            cat "$report" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "The live check didn't write a report; see the log of the step above." >> "$GITHUB_STEP_SUMMARY"
+          fi

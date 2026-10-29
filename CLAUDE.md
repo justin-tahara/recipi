@@ -46,8 +46,14 @@ These fail at runtime, not compile time:
 ## Importing
 
 `RecipeImporter` tries `SchemaRecipeParser` (JSON-LD) first, then
-`FallbackRecipeParser`. When a real site fails, add its trimmed markup as a
-test in `RecipeParserTests.swift` before changing the parser.
+`FallbackRecipeParser` (microdata, WP Recipe Maker, Tasty Recipes). With no
+recipe in the served HTML it follows a meta refresh or an AMP page's
+canonical link, then renders the page in an offscreen `WKWebView`
+(`RenderedPageReader`). When a real site fails, capture it with
+`scripts/capture_fixture.py` into `Tests/RecipiKitTests/Fixtures/` and add a
+row in `FixtureCorpusTests.swift` before changing the parser. Name fixtures
+after the markup pattern they show. The nightly live check
+(`.github/workflows/live-import-check.yml`) imports `scripts/live-check-urls.txt`.
 
 ## Build and test
 
@@ -56,7 +62,16 @@ xcodegen
 swift test --package-path Packages/RecipiKit
 xcodebuild build -project Recipi.xcodeproj -scheme Recipi \
   -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
+xcodebuild test -project Recipi.xcodeproj -scheme Recipi \
+  -destination 'platform=iOS Simulator,name=iPhone 16' CODE_SIGNING_ALLOWED=NO
 ```
+
+`xcodebuild test` runs `RecipiTests` (hosted unit tests) and `RecipiUITests`
+(a smoke test of import, scaling, cooking and groceries). Under test the app
+uses an in-memory store and serves imports from the fixture pages in
+`Recipi/App/TestSupport.swift`, so tests never touch iCloud or the network.
+UI tests launch it with `-ui-testing`; add an `.accessibilityIdentifier` only
+where a test can't find an element by its label.
 
 Signing is per developer in `Config/Local.xcconfig` (gitignored). Releases are
 signed with Justin's personal Apple Developer account, never a work account.

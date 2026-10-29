@@ -4,7 +4,8 @@ import SwiftData
 /// Builds the one SwiftData container that the app and the share extension
 /// both open. It lives in the shared App Group so a recipe saved from Safari
 /// shows up in the app, and it syncs through the person's private CloudKit
-/// database. There is no server.
+/// database unless they turned iCloud sync off in Settings. There is no
+/// server.
 public enum RecipiStore {
     public static var schema: Schema {
         Schema([
@@ -13,6 +14,7 @@ public enum RecipiStore {
             Step.self,
             Tag.self,
             GroceryItem.self,
+            CookLog.self,
         ])
     }
 
@@ -31,11 +33,16 @@ public enum RecipiStore {
             } else {
                 groupContainer = .automatic
             }
+            // SwiftData can't turn CloudKit on or off for a container that's
+            // already open, so the preference is read here and a change
+            // applies the next time the app or the extension starts.
+            let iCloudSyncEnabled = UserDefaults.appGroup(configuration).preference(PreferenceKeys.iCloudSync)
             let cloudKitDatabase: ModelConfiguration.CloudKitDatabase
-            if let containerID = configuration.cloudKitContainerID {
-                cloudKitDatabase = .private(containerID)
-            } else {
+            switch cloudSync(for: configuration, iCloudSyncEnabled: iCloudSyncEnabled) {
+            case .off:
                 cloudKitDatabase = .none
+            case .privateDatabase(let containerID):
+                cloudKitDatabase = .private(containerID)
             }
             modelConfiguration = ModelConfiguration(
                 schema: schema,
@@ -44,6 +51,23 @@ public enum RecipiStore {
             )
         }
         return try ModelContainer(for: schema, configurations: [modelConfiguration])
+    }
+
+    /// Whether the store syncs, and where.
+    public enum CloudSync: Equatable, Sendable {
+        /// Recipes stay on this device.
+        case off
+        /// Recipes sync through the person's private CloudKit database.
+        case privateDatabase(containerID: String)
+    }
+
+    /// Syncs only when the person has iCloud sync on and the build has an
+    /// iCloud container (forks and unsigned builds may not).
+    public static func cloudSync(for configuration: AppConfiguration, iCloudSyncEnabled: Bool) -> CloudSync {
+        guard iCloudSyncEnabled, let containerID = configuration.cloudKitContainerID else {
+            return .off
+        }
+        return .privateDatabase(containerID: containerID)
     }
 }
 
