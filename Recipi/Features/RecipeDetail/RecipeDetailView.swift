@@ -1,87 +1,81 @@
+import RecipiDesign
 import RecipiKit
 import SwiftData
 import SwiftUI
 
+/// A recipe laid out like a Notion page: cover photo, big title, a short
+/// property list, then ingredients, method and notes.
 struct RecipeDetailView: View {
     @Bindable var recipe: Recipe
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Servings currently shown. 0 until the view appears, and when the
     /// recipe doesn't say how many it serves.
     @State private var servings = 0
     @State private var isCooking = false
     @State private var isEditing = false
-    @State private var showsGroceryConfirmation = false
+    @State private var toastMessage: String?
+    /// True once the big title has scrolled under the navigation bar, so the
+    /// bar can show it instead.
+    @State private var isTitleScrolledAway = false
 
     var body: some View {
-        List {
-            if recipe.photoData != nil {
-                Section {
-                    RecipePhoto(data: recipe.photoData)
-                        .frame(height: 240)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                if recipe.photoData != nil {
+                    RecipePhoto(data: recipe.photoData, title: recipe.title)
+                        .frame(height: 260)
+                        .frame(maxWidth: .infinity)
                         .clipped()
-                        .listRowInsets(EdgeInsets())
+                        .accessibilityHidden(true)
                 }
-            }
 
-            if !recipe.summary.isEmpty || hasTimes {
-                Section {
-                    if !recipe.summary.isEmpty {
-                        Text(recipe.summary)
-                    }
-                    if let prepTime = recipe.prepTime {
-                        LabeledContent("Prep", value: RecipeFormat.duration(prepTime))
-                    }
-                    if let cookTime = recipe.cookTime {
-                        LabeledContent("Cook", value: RecipeFormat.duration(cookTime))
-                    }
-                    if let totalTime = recipe.totalTime {
-                        LabeledContent("Total", value: RecipeFormat.duration(totalTime))
+                VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
+                    header
+                    properties
+                    ingredientsSection
+                    methodSection
+                    if !recipe.notes.isEmpty {
+                        Callout(symbol: "lightbulb.fill", color: .yellow) {
+                            Text(recipe.notes)
+                        }
                     }
                 }
-            }
-
-            Section("Ingredients") {
-                if recipe.servings != nil {
-                    Stepper("Serves \(servings)", value: $servings, in: 1...99)
-                }
-                ForEach(recipe.sortedIngredients) { ingredient in
-                    Text(ingredient.parsed.scaled(by: scale))
-                }
-            }
-
-            Section("Method") {
-                ForEach(Array(recipe.sortedSteps.enumerated()), id: \.element.id) { index, step in
-                    HStack(alignment: .firstTextBaseline, spacing: 12) {
-                        Text("\(index + 1)")
-                            .font(.headline)
-                            .monospacedDigit()
-                        Text(step.text)
-                    }
-                }
-            }
-
-            if !recipe.notes.isEmpty {
-                Section("Notes") {
-                    Text(recipe.notes)
-                }
-            }
-
-            if let sourceURL = recipe.sourceURL {
-                Section {
-                    Link("View original recipe", destination: sourceURL)
-                }
+                .padding(.horizontal, Theme.Spacing.page)
+                .padding(.top, recipe.photoData == nil ? Theme.Spacing.xs : Theme.Spacing.lg)
+                .padding(.bottom, Theme.Spacing.xl)
+                .frame(maxWidth: 720, alignment: .leading)
+                .frame(maxWidth: .infinity)
             }
         }
+        .background(Theme.Colors.background)
         .navigationTitle(recipe.title)
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .principal) {
+                Text(displayTitle)
+                    .font(.headline)
+                    .foregroundStyle(Theme.Colors.textPrimary)
+                    .lineLimit(1)
+                    .opacity(isTitleScrolledAway ? 1 : 0)
+                    .motion(Motion.smooth, value: isTitleScrolledAway)
+            }
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button {
+                    withMotion(Motion.bouncy, reduceMotion: reduceMotion) {
+                        recipe.isFavorite.toggle()
+                    }
+                } label: {
+                    Label(recipe.isFavorite ? "Unfavorite" : "Favorite", systemImage: recipe.isFavorite ? "heart.fill" : "heart")
+                }
+                .tint(recipe.isFavorite ? TagColor.pink.foreground : Theme.Colors.accent)
+                .bounceEffect(value: recipe.isFavorite)
+                .sensoryFeedback(.selection, trigger: recipe.isFavorite)
+
                 Menu {
                     Button("Edit", systemImage: "pencil") { isEditing = true }
                     Button("Add to grocery list", systemImage: "cart.badge.plus", action: addToGroceryList)
-                    Button(recipe.isFavorite ? "Unfavorite" : "Favorite", systemImage: recipe.isFavorite ? "heart.slash" : "heart") {
-                        recipe.isFavorite.toggle()
-                    }
                 } label: {
                     Label("More", systemImage: "ellipsis.circle")
                 }
@@ -92,12 +86,23 @@ struct RecipeDetailView: View {
                 isCooking = true
             } label: {
                 Label("Start cooking", systemImage: "frying.pan")
-                    .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .padding()
+            .buttonStyle(.recipiPrimary)
+            .shadow(color: Theme.Colors.accent.opacity(0.25), radius: 12, y: 6)
             .disabled(recipe.sortedSteps.isEmpty)
+            .padding(.horizontal, Theme.Spacing.page)
+            .padding(.top, Theme.Spacing.lg)
+            .padding(.bottom, Theme.Spacing.xs)
+            .frame(maxWidth: 720)
+            .frame(maxWidth: .infinity)
+            .background {
+                LinearGradient(
+                    colors: [Theme.Colors.background.opacity(0), Theme.Colors.background],
+                    startPoint: .top,
+                    endPoint: .center
+                )
+                .ignoresSafeArea()
+            }
         }
         .fullScreenCover(isPresented: $isCooking) {
             CookingModeView(recipe: recipe, scale: scale)
@@ -105,9 +110,8 @@ struct RecipeDetailView: View {
         .sheet(isPresented: $isEditing) {
             RecipeEditorView(recipe: recipe)
         }
-        .alert("Added to your grocery list", isPresented: $showsGroceryConfirmation) {
-            Button("OK", role: .cancel) {}
-        }
+        .toast($toastMessage, bottomPadding: 96)
+        .sensoryFeedback(.success, trigger: toastMessage) { _, newValue in newValue != nil }
         .onAppear {
             if servings == 0 {
                 servings = recipe.servings ?? 0
@@ -115,8 +119,146 @@ struct RecipeDetailView: View {
         }
     }
 
-    private var hasTimes: Bool {
-        recipe.prepTime != nil || recipe.cookTime != nil || recipe.totalTime != nil
+    // MARK: - Blocks
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+            if recipe.photoData == nil {
+                // Like a Notion page icon.
+                RecipePhoto(data: nil, title: recipe.title)
+                    .frame(width: 56, height: 56)
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous))
+                    .accessibilityHidden(true)
+            }
+            Text(displayTitle)
+                .font(Theme.Fonts.pageTitle)
+                .foregroundStyle(Theme.Colors.textPrimary)
+                .accessibilityAddTraits(.isHeader)
+                .onGeometryChange(for: Bool.self) { proxy in
+                    proxy.frame(in: .scrollView).maxY < 0
+                } action: { isScrolledAway in
+                    isTitleScrolledAway = isScrolledAway
+                }
+            if !recipe.summary.isEmpty {
+                Text(recipe.summary)
+                    .font(Theme.Fonts.body)
+                    .foregroundStyle(Theme.Colors.textSecondary)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var properties: some View {
+        let tags = recipe.sortedTags
+        VStack(alignment: .leading, spacing: 0) {
+            if let prepTime = recipe.prepTime {
+                PropertyRow("Prep", symbol: "timer") { Text(RecipeFormat.duration(prepTime)) }
+            }
+            if let cookTime = recipe.cookTime {
+                PropertyRow("Cook", symbol: "flame") { Text(RecipeFormat.duration(cookTime)) }
+            }
+            if let totalTime = recipe.totalTime {
+                PropertyRow("Total", symbol: "clock") { Text(RecipeFormat.duration(totalTime)) }
+            }
+            if recipe.servings != nil {
+                PropertyRow("Servings", symbol: "person.2") {
+                    ServingsStepper(value: $servings)
+                        .fixedSize()
+                }
+            } else if let yieldText = recipe.yieldText, !yieldText.isEmpty {
+                PropertyRow("Makes", symbol: "person.2") { Text(yieldText) }
+            }
+            if !tags.isEmpty {
+                PropertyRow("Tags", symbol: "tag") {
+                    FlowLayout(spacing: 6) {
+                        ForEach(tags) { tag in
+                            TagPill(tag.name)
+                        }
+                    }
+                }
+            }
+            if let sourceURL = recipe.sourceURL {
+                PropertyRow("Source", symbol: "link") {
+                    Link(destination: sourceURL) {
+                        Text(Self.displayHost(of: sourceURL))
+                            .underline(color: Theme.Colors.border)
+                            .lineLimit(1)
+                    }
+                    .accessibilityLabel("View original recipe")
+                }
+            }
+        }
+    }
+
+    private var ingredientsSection: some View {
+        let ingredients = recipe.sortedIngredients
+        return VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+            SectionHeader("Ingredients") {
+                Text("\(ingredients.count)")
+                    .font(Theme.Fonts.label)
+                    .foregroundStyle(Theme.Colors.textTertiary)
+            }
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach(Array(ingredients.enumerated()), id: \.element.id) { index, ingredient in
+                    if let section = ingredient.section, index == 0 || ingredients[index - 1].section != section {
+                        eyebrow(section)
+                    }
+                    let parts = ingredient.parsed.scaledParts(by: scale)
+                    HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.sm) {
+                        Text("•")
+                            .fontWeight(.bold)
+                            .foregroundStyle(Theme.Colors.accent)
+                            .accessibilityHidden(true)
+                        (Text(parts.amount).fontWeight(.semibold) + Text(parts.rest))
+                            .foregroundStyle(Theme.Colors.textPrimary)
+                            .contentTransition(.numericText())
+                    }
+                }
+            }
+            .motion(Motion.bouncy, value: servings)
+        }
+    }
+
+    private var methodSection: some View {
+        let steps = recipe.sortedSteps
+        return VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+            SectionHeader("Method")
+            VStack(alignment: .leading, spacing: Theme.Spacing.md) {
+                ForEach(Array(steps.enumerated()), id: \.element.id) { index, step in
+                    if let section = step.section, index == 0 || steps[index - 1].section != section {
+                        eyebrow(section)
+                    }
+                    HStack(alignment: .firstTextBaseline, spacing: 14) {
+                        Text("\(index + 1)")
+                            .font(.subheadline.weight(.bold))
+                            .monospacedDigit()
+                            .foregroundStyle(Theme.Colors.accent)
+                            .frame(width: 26, height: 26)
+                            .background(Theme.Colors.accentSoft, in: Circle())
+                            .accessibilityLabel("Step \(index + 1)")
+                        Text(step.text)
+                            .foregroundStyle(Theme.Colors.textPrimary)
+                            .lineSpacing(3)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }
+        }
+    }
+
+    private func eyebrow(_ text: String) -> some View {
+        Text(text)
+            .font(Theme.Fonts.eyebrow)
+            .textCase(.uppercase)
+            .tracking(0.8)
+            .foregroundStyle(Theme.Colors.textSecondary)
+            .padding(.top, Theme.Spacing.xs)
+    }
+
+    // MARK: - Helpers
+
+    private var displayTitle: String {
+        recipe.title.isEmpty ? "Untitled recipe" : recipe.title
     }
 
     private var scale: Double {
@@ -124,10 +266,18 @@ struct RecipeDetailView: View {
         return Double(servings) / Double(base)
     }
 
+    private static func displayHost(of url: URL) -> String {
+        let host = url.host() ?? url.absoluteString
+        return host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
+    }
+
     private func addToGroceryList() {
-        for ingredient in recipe.sortedIngredients {
+        let ingredients = recipe.sortedIngredients
+        for ingredient in ingredients {
             modelContext.insert(GroceryItem(text: ingredient.parsed.scaled(by: scale), recipeTitle: recipe.title))
         }
-        showsGroceryConfirmation = true
+        toastMessage = ingredients.count == 1
+            ? "Added 1 item to Groceries"
+            : "Added \(ingredients.count) items to Groceries"
     }
 }

@@ -1,3 +1,4 @@
+import RecipiDesign
 import RecipiKit
 import SwiftData
 import SwiftUI
@@ -26,9 +27,10 @@ struct RootView: View {
     var body: some View {
         TabView {
             LibraryView()
-                .tabItem { Label("Recipes", systemImage: "book") }
+                .tabItem { Label("Recipes", systemImage: "book.closed") }
             GroceryListView()
                 .tabItem { Label("Groceries", systemImage: "cart") }
         }
+        .tint(Theme.Colors.accent)
     }
 }

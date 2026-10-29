@@ -1,3 +1,4 @@
+import RecipiDesign
 import RecipiKit
 import SwiftData
 import SwiftUI
@@ -10,36 +11,32 @@ struct CookingModeView: View {
     let scale: Double
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var currentStep = 0
     @State private var checkedIngredients: Set<PersistentIdentifier> = []
     @State private var showsIngredients = false
 
     var body: some View {
         let steps = recipe.sortedSteps
+        let ingredients = recipe.sortedIngredients
 
         NavigationStack {
-            TabView(selection: $currentStep) {
-                ForEach(Array(steps.enumerated()), id: \.element.id) { index, step in
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("Step \(index + 1) of \(steps.count)")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                            if let section = step.section {
-                                Text(section)
-                                    .font(.headline)
-                            }
-                            Text(step.text)
-                                .font(.title2)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding()
+            VStack(spacing: 0) {
+                StepProgressBar(count: steps.count, current: currentStep)
+                    .padding(.horizontal, Theme.Spacing.page)
+                    .padding(.top, Theme.Spacing.xs)
+
+                TabView(selection: $currentStep) {
+                    ForEach(Array(steps.enumerated()), id: \.element.id) { index, step in
+                        StepPage(step: step, number: index + 1, count: steps.count)
+                            .tag(index)
                     }
-                    .tag(index)
                 }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+
+                controls(stepCount: steps.count)
             }
-            .tabViewStyle(.page(indexDisplayMode: .always))
-            .indexViewStyle(.page(backgroundDisplayMode: .always))
+            .background(Theme.Colors.background)
             .navigationTitle(recipe.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -47,20 +44,131 @@ struct CookingModeView: View {
                     Button("Done") { dismiss() }
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button("Ingredients", systemImage: "checklist") { showsIngredients = true }
+                    Button {
+                        showsIngredients = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checklist")
+                            if !ingredients.isEmpty {
+                                Text("\(checkedIngredients.count)/\(ingredients.count)")
+                                    .font(.subheadline.weight(.medium))
+                                    .monospacedDigit()
+                                    .contentTransition(.numericText(value: Double(checkedIngredients.count)))
+                            }
+                        }
+                    }
+                    .accessibilityLabel("Ingredients")
+                    .accessibilityValue("\(checkedIngredients.count) of \(ingredients.count) added")
                 }
             }
             .sheet(isPresented: $showsIngredients) {
                 IngredientChecklist(
-                    ingredients: recipe.sortedIngredients,
+                    ingredients: ingredients,
                     scale: scale,
                     checked: $checkedIngredients
                 )
                 .presentationDetents([.medium, .large])
+                .presentationBackground(Theme.Colors.background)
             }
+            .sensoryFeedback(.selection, trigger: currentStep)
         }
+        .tint(Theme.Colors.accent)
         .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
         .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
+    }
+
+    private func controls(stepCount: Int) -> some View {
+        let isLast = currentStep >= stepCount - 1
+        return HStack(spacing: Theme.Spacing.sm) {
+            Button {
+                go(to: currentStep - 1)
+            } label: {
+                Label("Back", systemImage: "chevron.left")
+            }
+            .buttonStyle(.recipiSecondary)
+            .frame(maxWidth: 140)
+            .disabled(currentStep == 0)
+
+            Button {
+                if isLast {
+                    dismiss()
+                } else {
+                    go(to: currentStep + 1)
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Text(isLast ? "Finish" : "Next step")
+                    Image(systemName: isLast ? "checkmark" : "chevron.right")
+                        .contentTransition(.symbolEffect(.replace))
+                }
+            }
+            .buttonStyle(.recipiPrimary)
+        }
+        .padding(.horizontal, Theme.Spacing.page)
+        .padding(.top, Theme.Spacing.sm)
+        .padding(.bottom, Theme.Spacing.xs)
+        .frame(maxWidth: 720)
+    }
+
+    private func go(to step: Int) {
+        withMotion(Motion.smooth, reduceMotion: reduceMotion) {
+            currentStep = step
+        }
+    }
+}
+
+/// One segment per step. Finished and current steps fill with the accent.
+private struct StepProgressBar: View {
+    let count: Int
+    let current: Int
+
+    var body: some View {
+        HStack(spacing: 3) {
+            ForEach(0..<count, id: \.self) { index in
+                Capsule()
+                    .fill(index <= current ? Theme.Colors.accent : Theme.Colors.fill)
+                    .frame(height: 4)
+            }
+        }
+        .motion(Motion.smooth, value: current)
+        .accessibilityElement()
+        .accessibilityLabel("Step \(current + 1) of \(count)")
+    }
+}
+
+private struct StepPage: View {
+    let step: Step
+    let number: Int
+    let count: Int
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Theme.Spacing.md) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text("Step \(number)")
+                        .foregroundStyle(Theme.Colors.accent)
+                    Text("of \(count)")
+                        .foregroundStyle(Theme.Colors.textTertiary)
+                }
+                .font(Theme.Fonts.eyebrow)
+                .textCase(.uppercase)
+                .tracking(1)
+
+                if let section = step.section {
+                    TagPill(section)
+                }
+
+                Text(step.text)
+                    .font(Theme.Fonts.step)
+                    .foregroundStyle(Theme.Colors.textPrimary)
+                    .lineSpacing(6)
+            }
+            .frame(maxWidth: 720, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, Theme.Spacing.page)
+            .padding(.top, Theme.Spacing.xl)
+            .padding(.bottom, Theme.Spacing.lg)
+        }
     }
 }
 
@@ -69,29 +177,76 @@ private struct IngredientChecklist: View {
     let scale: Double
     @Binding var checked: Set<PersistentIdentifier>
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         NavigationStack {
-            List(ingredients) { ingredient in
-                let isChecked = checked.contains(ingredient.persistentModelID)
-                Button {
-                    if isChecked {
-                        checked.remove(ingredient.persistentModelID)
-                    } else {
-                        checked.insert(ingredient.persistentModelID)
+            List {
+                Section {
+                    ForEach(ingredients) { ingredient in
+                        row(for: ingredient)
                     }
-                } label: {
-                    Label {
-                        Text(ingredient.parsed.scaled(by: scale))
-                            .strikethrough(isChecked)
-                            .foregroundStyle(isChecked ? .secondary : .primary)
-                    } icon: {
-                        Image(systemName: isChecked ? "checkmark.circle.fill" : "circle")
-                    }
+                } header: {
+                    progressHeader
                 }
-                .buttonStyle(.plain)
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(Theme.Colors.background)
+            .sensoryFeedback(.selection, trigger: checked.count)
             .navigationTitle("Ingredients")
             .navigationBarTitleDisplayMode(.inline)
         }
+    }
+
+    private var progressHeader: some View {
+        let done = ingredients.filter { checked.contains($0.persistentModelID) }.count
+        let fraction = ingredients.isEmpty ? 0 : Double(done) / Double(ingredients.count)
+        return VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+            Text("\(done) of \(ingredients.count) added")
+                .font(Theme.Fonts.label)
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .contentTransition(.numericText(value: Double(done)))
+            GeometryReader { proxy in
+                Capsule()
+                    .fill(Theme.Colors.fill)
+                    .overlay(alignment: .leading) {
+                        Capsule()
+                            .fill(Theme.Colors.accent)
+                            .frame(width: proxy.size.width * fraction)
+                    }
+            }
+            .frame(height: 4)
+        }
+        .padding(.vertical, Theme.Spacing.xs)
+        .motion(Motion.smooth, value: done)
+        .textCase(nil)
+    }
+
+    private func row(for ingredient: Ingredient) -> some View {
+        let id = ingredient.persistentModelID
+        let isChecked = checked.contains(id)
+        return Button {
+            withMotion(Motion.snappy, reduceMotion: reduceMotion) {
+                if isChecked {
+                    checked.remove(id)
+                } else {
+                    checked.insert(id)
+                }
+            }
+        } label: {
+            HStack(spacing: Theme.Spacing.sm) {
+                Checkbox(isOn: isChecked)
+                Text(ingredient.parsed.scaled(by: scale))
+                    .strikethrough(isChecked, color: Theme.Colors.textTertiary)
+                    .foregroundStyle(isChecked ? Theme.Colors.textTertiary : Theme.Colors.textPrimary)
+                Spacer(minLength: 0)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .listRowBackground(Theme.Colors.background)
+        .listRowSeparatorTint(Theme.Colors.divider)
+        .accessibilityAddTraits(isChecked ? .isSelected : [])
     }
 }

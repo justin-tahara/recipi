@@ -62,8 +62,10 @@ Recipi/                  The iOS app (SwiftUI)
                          Cooking, Editor, Import, Grocery
   Shared/                Small views used across features
 RecipiShare/             Safari share sheet extension
-Packages/RecipiKit/      Shared code with no UI: SwiftData models, the
-                         importer and parsers, ingredient scaling, and tests
+Packages/RecipiKit/      Shared code: RecipiKit (SwiftData models, the
+                         importer and parsers, ingredient scaling) and
+                         RecipiDesign (colors, type, motion, components),
+                         with tests
 ```
 
 Anything both the app and the share extension need lives in RecipiKit. The

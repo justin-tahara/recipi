@@ -30,4 +30,15 @@ public struct ParsedIngredient: Sendable, Equatable {
         }
         return amount + remainder
     }
+
+    /// The scaled line split into its amount and everything after it, so a
+    /// view can set the amount apart, e.g. ("1½", " cups flour"). Lines
+    /// without an amount come back whole as `rest`.
+    public func scaledParts(by factor: Double) -> (amount: String, rest: String) {
+        let line = scaled(by: factor)
+        guard quantity != nil, !remainder.isEmpty, line.hasSuffix(remainder) else {
+            return ("", line)
+        }
+        return (String(line.dropLast(remainder.count)), remainder)
+    }
 }

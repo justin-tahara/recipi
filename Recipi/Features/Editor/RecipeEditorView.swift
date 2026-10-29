@@ -1,4 +1,5 @@
 import PhotosUI
+import RecipiDesign
 import RecipiKit
 import SwiftData
 import SwiftUI
@@ -23,55 +24,72 @@ struct RecipeEditorView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    TextField("Title", text: $recipe.title)
-                    TextField("Description", text: $recipe.summary, axis: .vertical)
-                }
+                Group {
+                    Section {
+                        TextField("Title", text: $recipe.title)
+                            .font(Theme.Fonts.sectionTitle)
+                        TextField("Description", text: $recipe.summary, axis: .vertical)
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                    }
 
-                Section("Photo") {
-                    // PhotosPicker's label closure is Sendable, so read the
-                    // main-actor model here rather than inside it.
-                    let photoLabel = recipe.photoData == nil ? "Add photo" : "Change photo"
-                    PhotosPicker(selection: $photoItem, matching: .images) {
-                        Label(photoLabel, systemImage: "photo")
+                    Section("Photo") {
+                        if recipe.photoData != nil {
+                            RecipePhoto(data: recipe.photoData, title: recipe.title)
+                                .frame(height: 180)
+                                .frame(maxWidth: .infinity)
+                                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.medium, style: .continuous))
+                                .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
+                                .transition(.opacity)
+                                .accessibilityHidden(true)
+                        }
+                        // PhotosPicker's label closure is Sendable, so read the
+                        // main-actor model here rather than inside it.
+                        let photoLabel = recipe.photoData == nil ? "Add photo" : "Change photo"
+                        PhotosPicker(selection: $photoItem, matching: .images) {
+                            Label(photoLabel, systemImage: "photo")
+                        }
+                    }
+
+                    Section("Servings") {
+                        TextField("Serves", text: $servingsText)
+                            .keyboardType(.numberPad)
+                    }
+
+                    Section {
+                        TextEditor(text: $ingredientsText)
+                            .frame(minHeight: 140)
+                    } header: {
+                        Text("Ingredients")
+                    } footer: {
+                        Text("One per line, e.g. \"1 1/2 cups flour\".")
+                    }
+
+                    Section {
+                        TextEditor(text: $stepsText)
+                            .frame(minHeight: 180)
+                    } header: {
+                        Text("Method")
+                    } footer: {
+                        Text("One step per line.")
+                    }
+
+                    Section {
+                        TextField("Dinner, vegetarian, quick", text: $tagsText)
+                    } header: {
+                        Text("Tags")
+                    } footer: {
+                        Text("Separate tags with commas.")
+                    }
+
+                    Section("Notes") {
+                        TextField("Notes", text: $recipe.notes, axis: .vertical)
                     }
                 }
-
-                Section("Servings") {
-                    TextField("Serves", text: $servingsText)
-                        .keyboardType(.numberPad)
-                }
-
-                Section {
-                    TextEditor(text: $ingredientsText)
-                        .frame(minHeight: 140)
-                } header: {
-                    Text("Ingredients")
-                } footer: {
-                    Text("One per line, e.g. \"1 1/2 cups flour\".")
-                }
-
-                Section {
-                    TextEditor(text: $stepsText)
-                        .frame(minHeight: 180)
-                } header: {
-                    Text("Method")
-                } footer: {
-                    Text("One step per line.")
-                }
-
-                Section {
-                    TextField("Dinner, vegetarian, quick", text: $tagsText)
-                } header: {
-                    Text("Tags")
-                } footer: {
-                    Text("Separate tags with commas.")
-                }
-
-                Section("Notes") {
-                    TextField("Notes", text: $recipe.notes, axis: .vertical)
-                }
+                .listRowBackground(Theme.Colors.elevated)
             }
+            .scrollContentBackground(.hidden)
+            .background(Theme.Colors.surface)
+            .motion(Motion.smooth, value: recipe.photoData != nil)
             .navigationTitle(isNew ? "New recipe" : "Edit recipe")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -88,6 +106,7 @@ struct RecipeEditorView: View {
                 Task { await loadPhoto() }
             }
         }
+        .tint(Theme.Colors.accent)
     }
 
     private func load() {
