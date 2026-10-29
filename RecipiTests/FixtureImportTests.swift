@@ -9,7 +9,8 @@ struct FixtureImportTests {
     private let importer: RecipeImporter = {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [FixtureURLProtocol.self]
-        return RecipeImporter(session: URLSession(configuration: configuration))
+        // No offscreen web view: it would load the page over the real network.
+        return RecipeImporter(session: URLSession(configuration: configuration), rendersJavaScript: false)
     }()
 
     @Test func importsTheFixturePage() async throws {

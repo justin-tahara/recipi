@@ -27,6 +27,13 @@ final class SmokeTests: XCTestCase {
         linkField.typeText(fixtureURL)
         app.buttons["Import recipe"].firstMatch.tap()
 
+        // The preview shows; Save turns on once the photo lookup is done.
+        let save = app.buttons["Save recipe"].firstMatch
+        XCTAssertTrue(save.waitForExistence(timeout: timeout))
+        let enabled = expectation(for: NSPredicate(format: "isEnabled == true"), evaluatedWith: save)
+        wait(for: [enabled], timeout: timeout)
+        save.tap()
+
         // The sheet closes and the recipe is in the library.
         let row = element("library.recipe", in: app)
         XCTAssertTrue(row.waitForExistence(timeout: timeout))
