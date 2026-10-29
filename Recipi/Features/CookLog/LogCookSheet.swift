@@ -95,7 +95,8 @@ struct LogCookSheet: View {
         isLoadingPhoto = true
         defer { isLoadingPhoto = false }
         guard let data = try? await photoItem.loadTransferable(type: Data.self) else { return }
-        let prepared = CookPhoto.prepared(from: data) ?? data
+        // Same downscale as imported photos, so cooks stay small in iCloud.
+        let prepared = RecipePhotoProcessor.prepare(data) ?? data
         withMotion(Motion.smooth, reduceMotion: reduceMotion) {
             photoData = prepared
         }
