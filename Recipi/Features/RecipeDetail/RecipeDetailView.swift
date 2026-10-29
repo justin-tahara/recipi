@@ -164,6 +164,7 @@ struct RecipeDetailView: View {
                 PropertyRow("Servings", symbol: "person.2") {
                     ServingsStepper(value: $servings)
                         .fixedSize()
+                        .accessibilityIdentifier("recipe.servings")
                 }
             } else if let yieldText = recipe.yieldText, !yieldText.isEmpty {
                 PropertyRow("Makes", symbol: "person.2") { Text(yieldText) }

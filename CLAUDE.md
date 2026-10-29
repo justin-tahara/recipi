@@ -54,7 +54,16 @@ xcodegen
 swift test --package-path Packages/RecipiKit
 xcodebuild build -project Recipi.xcodeproj -scheme Recipi \
   -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
+xcodebuild test -project Recipi.xcodeproj -scheme Recipi \
+  -destination 'platform=iOS Simulator,name=iPhone 16' CODE_SIGNING_ALLOWED=NO
 ```
+
+`xcodebuild test` runs `RecipiTests` (hosted unit tests) and `RecipiUITests`
+(a smoke test of import, scaling, cooking and groceries). Under test the app
+uses an in-memory store and serves imports from the fixture pages in
+`Recipi/App/TestSupport.swift`, so tests never touch iCloud or the network.
+UI tests launch it with `-ui-testing`; add an `.accessibilityIdentifier` only
+where a test can't find an element by its label.
 
 Signing is per developer in `Config/Local.xcconfig` (gitignored). Releases are
 signed with Justin's personal Apple Developer account, never a work account.

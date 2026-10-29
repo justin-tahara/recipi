@@ -96,6 +96,37 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: $(RECIPI_BUNDLE_ID).share
         TARGETED_DEVICE_FAMILY: "1,2"
 
+  # Hosted unit tests. They link against the app, so they also see
+  # RecipiKit through it; linking the package again would duplicate the
+  # SwiftData models.
+  RecipiTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - RecipiTests
+    dependencies:
+      - target: Recipi
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(RECIPI_BUNDLE_ID).tests
+        GENERATE_INFOPLIST_FILE: YES
+        TARGETED_DEVICE_FAMILY: "1,2"
+
+  # UI tests launch the app with -ui-testing: an in-memory store and
+  # fixture pages instead of the network.
+  RecipiUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - RecipiUITests
+    dependencies:
+      - target: Recipi
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(RECIPI_BUNDLE_ID).uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TARGETED_DEVICE_FAMILY: "1,2"
+
 schemes:
   Recipi:
     build:
@@ -104,5 +135,10 @@ schemes:
         RecipiShare: all
     run:
       config: Debug
+    test:
+      config: Debug
+      targets:
+        - RecipiTests
+        - RecipiUITests
     archive:
       config: Release
