@@ -28,18 +28,30 @@ final class FixtureURLProtocol: URLProtocol {
         var status: Int = 200
         var contentType: String = "text/html; charset=utf-8"
         var redirect: URL?
+        /// A `URLError` code to fail with instead of answering.
+        var failure: Int?
 
-        static func html(_ html: String) -> Route {
-            Route(body: Data(html.utf8))
+        static func html(_ html: String, status: Int = 200) -> Route {
+            Route(body: Data(html.utf8), status: status)
         }
 
-        static func redirect(to url: URL) -> Route {
-            Route(status: 301, redirect: url)
+        static func redirect(to url: URL, status: Int = 301) -> Route {
+            Route(status: status, redirect: url)
+        }
+
+        static func failing(_ code: URLError.Code) -> Route {
+            Route(failure: code.rawValue)
         }
     }
 
     private static let lock = NSLock()
     nonisolated(unsafe) private static var routes: [URL: Route] = [:]
+    nonisolated(unsafe) private static var requestHeaders: [URL: [String: String]] = [:]
+
+    /// The headers of the last request made for `url`.
+    static func headers(sentTo url: URL) -> [String: String]? {
+        lock.withLock { requestHeaders[url] }
+    }
 
     /// A session that answers from `routes` and fails anything else.
     static func session(_ newRoutes: [URL: Route]) -> URLSession {
@@ -58,9 +70,15 @@ final class FixtureURLProtocol: URLProtocol {
             client?.urlProtocol(self, didFailWithError: URLError(.cannotFindHost))
             return
         }
-        var headers = ["Content-Type": route.contentType]
-        if let redirect = route.redirect { headers["Location"] = redirect.absoluteString }
-        let response = HTTPURLResponse(url: url, statusCode: route.status, httpVersion: "HTTP/1.1", headerFields: headers)!
+        let headers = request.allHTTPHeaderFields ?? [:]
+        Self.lock.withLock { Self.requestHeaders[url] = headers }
+        if let failure = route.failure {
+            client?.urlProtocol(self, didFailWithError: URLError(URLError.Code(rawValue: failure)))
+            return
+        }
+        var responseHeaders = ["Content-Type": route.contentType]
+        if let redirect = route.redirect { responseHeaders["Location"] = redirect.absoluteString }
+        let response = HTTPURLResponse(url: url, statusCode: route.status, httpVersion: "HTTP/1.1", headerFields: responseHeaders)!
         if let redirect = route.redirect {
             client?.urlProtocol(self, wasRedirectedTo: URLRequest(url: redirect), redirectResponse: response)
             return
