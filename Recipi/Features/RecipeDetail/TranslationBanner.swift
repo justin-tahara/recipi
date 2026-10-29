@@ -214,11 +214,8 @@ struct TranslationBanner: View {
 
         let plan = RecipeTranslationPlan(recipe.translationSource)
         guard !plan.segments.isEmpty else { return }
-        let requests = plan.segments.map {
-            TranslationSession.Request(sourceText: $0.text, clientIdentifier: $0.id)
-        }
         do {
-            let responses = try await session.translations(from: requests)
+            let responses = try await session.translations(from: Self.requests(for: plan.segments))
             var translations: [String: String] = [:]
             for response in responses {
                 if let id = response.clientIdentifier {
@@ -234,6 +231,17 @@ struct TranslationBanner: View {
         } catch {
             failureMessage = failureText(target: target)
         }
+    }
+
+    /// One request per segment, tagged with its id. Built outside the main
+    /// actor because requests aren't Sendable and go straight to the
+    /// session.
+    private nonisolated static func requests(for segments: [RecipeTranslationPlan.Segment]) -> [TranslationSession.Request] {
+        var requests: [TranslationSession.Request] = []
+        for segment in segments {
+            requests.append(TranslationSession.Request(sourceText: segment.text, clientIdentifier: segment.id))
+        }
+        return requests
     }
 
     /// The download may have been turned down or still be in progress, or
