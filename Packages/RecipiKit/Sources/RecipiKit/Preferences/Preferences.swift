@@ -47,6 +47,12 @@ public final class Preferences {
         set { self[PreferenceKeys.iCloudSync] = newValue }
     }
 
+    /// See `PreferenceKeys.librarySort`.
+    public var librarySort: LibrarySort {
+        get { self[PreferenceKeys.librarySort] }
+        set { self[PreferenceKeys.librarySort] = newValue }
+    }
+
     /// See `PreferenceKeys.measurements`.
     public var measurements: MeasurementPreference {
         get { self[PreferenceKeys.measurements] }

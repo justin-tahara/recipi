@@ -14,6 +14,7 @@ public enum RecipiStore {
             Step.self,
             Tag.self,
             GroceryItem.self,
+            CookLog.self,
         ])
     }
 

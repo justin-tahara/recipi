@@ -18,6 +18,7 @@ struct RecipeDetailView: View {
     /// The ingredient whose "I have" sheet is open.
     @State private var scalingIngredient: Ingredient?
     @State private var isEnteringCustomScale = false
+    @State private var isLoggingCook = false
     @State private var customScaleText = ""
     @State private var isCooking = false
     @State private var isEditing = false
@@ -45,6 +46,7 @@ struct RecipeDetailView: View {
                     properties
                     ingredientsSection
                     methodSection
+                    CookHistorySection(recipe: recipe) { isLoggingCook = true }
                     if !recipe.notes.isEmpty {
                         Callout(symbol: "lightbulb.fill", color: .yellow) {
                             Text(recipe.notes)
@@ -85,6 +87,7 @@ struct RecipeDetailView: View {
                 Menu {
                     Button("Edit", systemImage: "pencil") { isEditing = true }
                     Button("Add to grocery list", systemImage: "cart.badge.plus", action: addToGroceryList)
+                    Button("I made this", systemImage: "checkmark.seal") { isLoggingCook = true }
                 } label: {
                     Label("More", systemImage: "ellipsis.circle")
                 }
@@ -121,6 +124,12 @@ struct RecipeDetailView: View {
         }
         .toast($toastMessage, bottomPadding: 96)
         .sensoryFeedback(.success, trigger: toastMessage) { _, newValue in newValue != nil }
+        .sheet(isPresented: $isLoggingCook) {
+            LogCookSheet(recipe: recipe) {
+                toastMessage = "Logged. Nice cooking."
+            }
+            .presentationDetents([.medium, .large])
+        }
         .sheet(item: $scalingIngredient) { ingredient in
             HaveAmountSheet(ingredient: ingredient.parsed) { factor, reason in
                 setScale(factor, reason: reason)
@@ -206,6 +215,11 @@ struct RecipeDetailView: View {
                             TagPill(tag.name)
                         }
                     }
+                }
+            }
+            if let lastCookedAt = recipe.lastCookedAt {
+                PropertyRow("Last cooked", symbol: "checkmark.seal") {
+                    Text(Self.lastCookedText(lastCookedAt, count: recipe.cookLogs?.count ?? 0))
                 }
             }
             if let sourceURL = recipe.sourceURL {
@@ -411,6 +425,12 @@ struct RecipeDetailView: View {
 
     private var displayTitle: String {
         recipe.title.isEmpty ? "Untitled recipe" : recipe.title
+    }
+
+    /// "3 weeks ago · 4 times".
+    private static func lastCookedText(_ date: Date, count: Int) -> String {
+        let when = date.formatted(.relative(presentation: .named))
+        return count > 1 ? "\(when) · \(count) times" : when
     }
 
     private static func displayHost(of url: URL) -> String {

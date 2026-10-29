@@ -39,6 +39,12 @@ public final class Recipe {
     @Relationship(inverse: \Tag.recipes)
     public var tags: [Tag]? = []
 
+    /// Every time it was cooked. See CookLog.swift.
+    @Relationship(deleteRule: .cascade, inverse: \CookLog.recipe)
+    public var cookLogs: [CookLog]? = []
+    /// The newest `cookLogs` date, stored so the Library can sort by it.
+    public var lastCookedAt: Date?
+
     public init(title: String = "") {
         self.title = title
     }

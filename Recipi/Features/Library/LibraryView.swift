@@ -13,6 +13,7 @@ struct LibraryView: View {
     @State private var isShowingImport = false
     @State private var isShowingSettings = false
     @State private var newRecipe: Recipe?
+    @State private var preferences = Preferences()
     @Namespace private var zoomNamespace
 
     var body: some View {
@@ -118,6 +119,17 @@ struct LibraryView: View {
         }
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
+                Picker("Sort by", selection: $preferences.librarySort) {
+                    ForEach(LibrarySort.allCases) { sort in
+                        Text(sort.title).tag(sort)
+                    }
+                }
+            } label: {
+                Label("Sort", systemImage: "arrow.up.arrow.down")
+            }
+        }
+        ToolbarItem(placement: .topBarTrailing) {
+            Menu {
                 Button("Import from link", systemImage: "link") { isShowingImport = true }
                 Button("Add manually", systemImage: "square.and.pencil", action: addManually)
             } label: {
@@ -132,6 +144,7 @@ struct LibraryView: View {
 
     private var filteredRecipes: [Recipe] {
         let query = searchText.trimmingCharacters(in: .whitespaces)
+        let sort = preferences.librarySort
         return recipes.filter { recipe in
             if let selectedTag, !recipe.sortedTags.contains(where: { $0.name == selectedTag }) {
                 return false
@@ -140,6 +153,7 @@ struct LibraryView: View {
             return recipe.title.localizedCaseInsensitiveContains(query)
                 || recipe.sortedIngredients.contains { $0.text.localizedCaseInsensitiveContains(query) }
         }
+        .sorted { sort.areInIncreasingOrder($0.librarySortKey, $1.librarySortKey) }
     }
 
     private func addManually() {
@@ -261,8 +275,18 @@ private struct RecipeRow: View {
     @ViewBuilder
     private var meta: some View {
         let tags = recipe.sortedTags
-        if recipe.totalTime != nil || !tags.isEmpty {
+        if recipe.totalTime != nil || recipe.lastCookedAt != nil || !tags.isEmpty {
             HStack(spacing: Theme.Spacing.xs) {
+                if let lastCookedAt = recipe.lastCookedAt {
+                    HStack(spacing: 3) {
+                        Image(systemName: "checkmark.seal")
+                        Text(lastCookedAt.formatted(.relative(presentation: .named)))
+                    }
+                    .font(.footnote)
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                    .lineLimit(1)
+                    .accessibilityLabel("Cooked \(lastCookedAt.formatted(.relative(presentation: .named)))")
+                }
                 if let totalTime = recipe.totalTime {
                     HStack(spacing: 3) {
                         Image(systemName: "clock")
