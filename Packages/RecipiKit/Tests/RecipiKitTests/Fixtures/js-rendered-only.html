@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<!-- Hand-written fixture: a page whose recipe data only exists once its
+     script runs. The served HTML has no JSON-LD block and no recipe markup;
+     the script builds the JSON-LD and adds it to <head> a moment after load.
+     Only the offscreen web view fallback can import it. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Loading…</title>
+</head>
+<body>
+<div id="app"></div>
+<script>
+  window.__RECIPE_STATE__ = {
+    title: "Sesame Noodles",
+    image: "https://example.com/static/sesame-noodles.jpg",
+    serves: "4",
+    ingredients: [
+      "12 ounces noodles",
+      "3 tablespoons tahini",
+      "2 tablespoons soy sauce",
+      "1 tablespoon rice vinegar",
+      "1 tablespoon chili crisp",
+      "2 scallions, sliced"
+    ],
+    steps: [
+      "Cook the noodles and rinse them under cold water.",
+      "Whisk the tahini, soy sauce, vinegar and chili crisp.",
+      "Toss the noodles in the sauce and top with scallions."
+    ]
+  };
+  setTimeout(function () {
+    var state = window.__RECIPE_STATE__;
+    var data = {
+      "@context": "https://schema.org",
+      "@type": "Recipe",
+      "name": state.title,
+      "image": state.image,
+      "recipeYield": state.serves,
+      "totalTime": "PT20M",
+      "recipeIngredient": state.ingredients,
+      "recipeInstructions": state.steps.map(function (text) {
+        return { "@type": "HowToStep", "text": text };
+      })
+    };
+    var tag = document.createElement("script");
+    tag.type = "application/ld+json";
+    tag.text = JSON.stringify(data);
+    document.head.appendChild(tag);
+    document.title = state.title;
+  }, 300);
+</script>
+</body>
+</html>
