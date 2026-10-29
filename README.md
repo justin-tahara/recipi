@@ -34,7 +34,7 @@ recipi is built as an open alternative to paid recipe apps like Mela.
 
 ## Getting started
 
-Requirements: Xcode 16 or later, iOS 17 or later, and
+Requirements: Xcode 16 or later, iOS 18 or later, and
 [XcodeGen](https://github.com/yonaskolb/XcodeGen).
 
 ```sh
