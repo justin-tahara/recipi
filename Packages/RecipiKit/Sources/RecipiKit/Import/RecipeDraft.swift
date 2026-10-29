@@ -23,7 +23,12 @@ public struct RecipeDraft: Sendable, Equatable {
     public var prepTime: TimeInterval?
     public var cookTime: TimeInterval?
     public var totalTime: TimeInterval?
+    /// The photo to use: the best of `imageCandidates`.
     public var imageURL: URL?
+    /// Every photo the page offers for the recipe, best first: the recipe's
+    /// own images (largest first when their size is known), then `og:image`,
+    /// then `twitter:image`.
+    public var imageCandidates: [URL] = []
     public var ingredients: [Line] = []
     public var steps: [Line] = []
     public var tags: [String] = []

@@ -81,10 +81,32 @@ public struct RecipeImporter: Sendable {
         }
     }
 
-    /// Downloads the recipe's photo, if it has one. Failure is not fatal.
+    /// Downloads the recipe's photo, if it has one, ready to save: at most
+    /// 2048 px on its long edge. If the best photo won't load, the next
+    /// couple of candidates are tried. Failure is not fatal.
     public func fetchImage(for draft: RecipeDraft) async -> Data? {
-        guard let imageURL = draft.imageURL else { return nil }
-        return try? await session.data(from: imageURL).0
+        let candidates = draft.imageCandidates.isEmpty ? [draft.imageURL].compactMap { $0 } : draft.imageCandidates
+        for url in candidates.prefix(3) {
+            if let photo = await fetchPhoto(at: url) { return photo.data }
+        }
+        return nil
+    }
+
+    /// Downloads one photo and prepares it for saving and previewing.
+    /// Returns nil if it won't load or isn't an image.
+    public func fetchPhoto(at url: URL) async -> ImportedPhoto? {
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 15
+        guard let result = try? await session.data(for: request) else { return nil }
+        let (data, response) = result
+        if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) { return nil }
+        // Resizing decodes the image, so do it once for the saved copy and
+        // make the small preview from that.
+        guard let saved = RecipePhotoProcessor.prepare(data),
+              let preview = RecipePhotoProcessor.prepare(saved, maxPixelSize: RecipePhotoProcessor.previewPixelSize, quality: 0.7) else {
+            return nil
+        }
+        return ImportedPhoto(url: url, data: saved, preview: preview)
     }
 
     // MARK: - Fetching
@@ -167,6 +189,14 @@ extension RecipeImporter {
     public func saveRecipe(from url: URL, into context: ModelContext) async throws -> Recipe {
         let draft = try await importRecipe(from: url)
         let photoData = await fetchImage(for: draft)
+        return try save(draft, photoData: photoData, into: context)
+    }
+
+    /// Saves a draft that was already imported, with the photo the person
+    /// picked (or none).
+    @MainActor
+    @discardableResult
+    public func save(_ draft: RecipeDraft, photoData: Data?, into context: ModelContext) throws -> Recipe {
         let recipe = Recipe.insert(from: draft, photoData: photoData, into: context)
         try context.save()
         return recipe

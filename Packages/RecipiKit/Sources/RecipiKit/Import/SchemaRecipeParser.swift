@@ -5,10 +5,11 @@ import Foundation
 /// large majority of imports.
 public enum SchemaRecipeParser {
     public static func parse(html: String, sourceURL: URL? = nil) -> RecipeDraft? {
+        let pageImages = ImageSelection.pageImages(in: html, relativeTo: sourceURL)
         for object in jsonLDObjects(in: html) {
             let nodes = NodeIndex(object)
             guard let node = findRecipe(in: object),
-                  let recipe = draft(from: node, sourceURL: sourceURL, nodes: nodes) else {
+                  let recipe = draft(from: node, sourceURL: sourceURL, nodes: nodes, pageImages: pageImages) else {
                 continue
             }
             return recipe
@@ -110,7 +111,12 @@ public enum SchemaRecipeParser {
 
     // MARK: - Mapping
 
-    static func draft(from node: [String: Any], sourceURL: URL?, nodes: NodeIndex? = nil) -> RecipeDraft? {
+    static func draft(
+        from node: [String: Any],
+        sourceURL: URL?,
+        nodes: NodeIndex? = nil,
+        pageImages: [ImageCandidate] = []
+    ) -> RecipeDraft? {
         let index = nodes ?? NodeIndex(node)
         guard let title = text(node["name"]) ?? text(node["headline"]) else { return nil }
 
@@ -118,7 +124,9 @@ public enum SchemaRecipeParser {
         draft.sourceURL = sourceURL ?? text(node["url"]).flatMap(URL.init(string:))
         draft.summary = text(node["description"]) ?? ""
         draft.author = name(of: index.resolve(node["author"]))
-        draft.imageURL = imageURL(index.resolve(node["image"]), relativeTo: sourceURL)
+        let recipeImages = ImageSelection.recipeImages(index.resolve(node["image"]), relativeTo: sourceURL)
+        draft.imageCandidates = ImageSelection.ranked(recipeImages + pageImages)
+        draft.imageURL = draft.imageCandidates.first
 
         draft.prepTime = text(node["prepTime"]).flatMap(RecipeValues.duration(from:))
         draft.cookTime = text(node["cookTime"]).flatMap(RecipeValues.duration(from:))
@@ -172,18 +180,6 @@ public enum SchemaRecipeParser {
         }
         if let object = value as? [String: Any] { return text(object["name"]) }
         return text(value)
-    }
-
-    private static func imageURL(_ value: Any?, relativeTo base: URL?) -> URL? {
-        let string: String?
-        switch value {
-        case let single as String: string = single
-        case let array as [Any]: return array.lazy.compactMap { imageURL($0, relativeTo: base) }.first
-        case let object as [String: Any]: string = object["url"] as? String ?? object["contentUrl"] as? String
-        default: string = nil
-        }
-        guard let string = string?.trimmingCharacters(in: .whitespacesAndNewlines), !string.isEmpty else { return nil }
-        return URL(string: string, relativeTo: base)?.absoluteURL
     }
 
     private static func yieldValues(_ value: Any?) -> [String] {

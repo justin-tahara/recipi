@@ -50,8 +50,13 @@ public enum FallbackRecipeParser {
             draft.totalTime = microdataValue("totalTime", in: scalars).flatMap(RecipeValues.duration(from:))
         }
 
-        let image = scalars.flatMap { microdataValue("image", in: $0) } ?? HTMLText.metaContent("og:image", in: page)
-        draft.imageURL = image.flatMap { URL(string: $0, relativeTo: sourceURL)?.absoluteURL }
+        let recipeImages = scalars
+            .flatMap { microdataValue("image", in: $0) }
+            .flatMap { ImageSelection.candidate($0, source: .recipe, relativeTo: sourceURL) }
+        draft.imageCandidates = ImageSelection.ranked(
+            (recipeImages.map { [$0] } ?? []) + ImageSelection.pageImages(in: page, relativeTo: sourceURL)
+        )
+        draft.imageURL = draft.imageCandidates.first
         return draft
     }
 
