@@ -43,6 +43,7 @@ struct RecipeDetailView: View {
 
                 VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
                     header
+                    TranslationBanner(recipe: recipe)
                     properties
                     ingredientsSection
                     methodSection
@@ -61,6 +62,7 @@ struct RecipeDetailView: View {
             }
         }
         .background(Theme.Colors.background)
+        .detectsRecipeLanguage(recipe)
         .navigationTitle(recipe.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

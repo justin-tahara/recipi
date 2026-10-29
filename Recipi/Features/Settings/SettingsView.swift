@@ -21,6 +21,7 @@ struct SettingsView: View {
                     measurementsSection
                     tagsSection
                     syncSection
+                    TranslationSettingsSection(preferences: preferences)
                     aboutSection
                 }
                 .listRowBackground(Theme.Colors.elevated)

@@ -33,7 +33,12 @@ public struct IngredientParts: Sendable, Equatable {
         if parsed.unit != nil {
             // The parser read the unit from the leading letters; take the
             // same letters as written, plus a trailing "." as in "tbsp.".
+            // A foreign unit can be several words ("c. à s.") or run into
+            // the name (Japanese), so it says how long it is.
             var end = rest.firstIndex { !$0.isLetter } ?? rest.endIndex
+            if let foreign = Units.foreignMatch(atStartOf: rest) {
+                end = rest.index(rest.startIndex, offsetBy: foreign.length)
+            }
             if end < rest.endIndex, rest[end] == "." {
                 end = rest.index(after: end)
             }
