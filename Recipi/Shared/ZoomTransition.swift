@@ -17,8 +17,12 @@ extension View {
     /// Zooms a pushed screen out of its source.
     @ViewBuilder
     func zoomTransition(sourceID: some Hashable, in namespace: Namespace.ID, isEnabled: Bool) -> some View {
-        if #available(iOS 18.0, *), isEnabled {
-            navigationTransition(.zoom(sourceID: sourceID, in: namespace))
+        if #available(iOS 18.0, *) {
+            if isEnabled {
+                navigationTransition(.zoom(sourceID: sourceID, in: namespace))
+            } else {
+                self
+            }
         } else {
             self
         }
