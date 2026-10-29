@@ -9,6 +9,9 @@ struct ISO8601DurationTests {
         ("pt45s", 45.0),
         ("P1D", 86_400.0),
         ("PT1.5H", 5_400.0),
+        ("PT1H 30M", 5_400.0),
+        ("P0Y0M0DT0H20M0.000S", 1_200.0),
+        ("P0DT8H", 28_800.0),
     ])
     func parsesDurations(input: String, expected: Double) {
         #expect(ISO8601Duration.seconds(from: input) == expected)

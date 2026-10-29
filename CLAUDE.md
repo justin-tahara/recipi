@@ -5,7 +5,8 @@ README.md for the feature scope; v2 items are out of scope until v1 ships.
 
 ## Stack and conventions
 
-- Swift 6 language mode with strict concurrency, SwiftUI, iOS 17 minimum.
+- Swift 6 language mode with strict concurrency, SwiftUI, iOS 18 minimum (raise it
+  only when a feature needs a newer iOS).
 - MVVM with `@Observable` when a screen needs state beyond simple `@State`
   and `@Query`; plain views otherwise.
 - SwiftData for storage, synced with CloudKit (private database). No backend.
@@ -28,8 +29,9 @@ something (tag colors, the paprika accent on actions, callouts).
 - Animate with `Motion` and the helpers `withMotion(_:reduceMotion:)`,
   `.motion(_:value:)` and `.bounceEffect(value:)`, which turn movement off
   under Reduce Motion. Don't call `withAnimation` directly in screens.
-- iOS 18-only APIs (the library-to-recipe zoom) go behind `#available`; see
-  `Recipi/Shared/ZoomTransition.swift`.
+- The minimum is iOS 18, so iOS 18 APIs (like the library-to-recipe zoom in
+  `Recipi/Shared/ZoomTransition.swift`) need no `#available` check. Anything
+  newer goes behind `#available`.
 
 ## SwiftData + CloudKit rules
 
@@ -44,8 +46,14 @@ These fail at runtime, not compile time:
 ## Importing
 
 `RecipeImporter` tries `SchemaRecipeParser` (JSON-LD) first, then
-`FallbackRecipeParser`. When a real site fails, add its trimmed markup as a
-test in `RecipeParserTests.swift` before changing the parser.
+`FallbackRecipeParser` (microdata, WP Recipe Maker, Tasty Recipes). With no
+recipe in the served HTML it follows a meta refresh or an AMP page's
+canonical link, then renders the page in an offscreen `WKWebView`
+(`RenderedPageReader`). When a real site fails, capture it with
+`scripts/capture_fixture.py` into `Tests/RecipiKitTests/Fixtures/` and add a
+row in `FixtureCorpusTests.swift` before changing the parser. Name fixtures
+after the markup pattern they show. The nightly live check
+(`.github/workflows/live-import-check.yml`) imports `scripts/live-check-urls.txt`.
 
 ## Build and test
 

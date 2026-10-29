@@ -11,6 +11,7 @@ struct LibraryView: View {
     @State private var searchText = ""
     @State private var selectedTag: String?
     @State private var isShowingImport = false
+    @State private var isShowingSettings = false
     @State private var newRecipe: Recipe?
     @Namespace private var zoomNamespace
 
@@ -45,6 +46,9 @@ struct LibraryView: View {
             }
             .sheet(item: $newRecipe) { recipe in
                 RecipeEditorView(recipe: recipe, isNew: true)
+            }
+            .sheet(isPresented: $isShowingSettings) {
+                SettingsView()
             }
         }
     }
@@ -109,6 +113,9 @@ struct LibraryView: View {
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) {
+            Button("Settings", systemImage: "gearshape") { isShowingSettings = true }
+        }
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
                 Button("Import from link", systemImage: "link") { isShowingImport = true }

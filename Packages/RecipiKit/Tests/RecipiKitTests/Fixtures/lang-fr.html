@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<!-- Hand-written fixture: a French recipe page with accented text as raw
+     UTF-8 and as entities (including &oelig;), a yield in personnes, and
+     steps in HowToSection groups. -->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>B&oelig;uf bourguignon</title>
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "Recipe", "inLanguage": "fr-FR",
+ "name": "B&oelig;uf bourguignon",
+ "description": "Le classique mijoté au vin rouge, encore meilleur le lendemain.",
+ "image": ["https://example.fr/photos/boeuf-bourguignon.jpg"],
+ "recipeYield": "6 personnes",
+ "prepTime": "PT30M", "cookTime": "PT3H", "totalTime": "PT3H30M",
+ "recipeIngredient": ["1,5 kg de b&oelig;uf à braiser", "75 cl de vin rouge", "200 g de lardons", "250 g de champignons de Paris", "2 carottes", "1 oignon", "2 gousses d’ail", "1 bouquet garni", "2 cuillères à soupe de farine"],
+ "recipeInstructions": [
+   {"@type": "HowToSection", "name": "La veille", "itemListElement": [
+     {"@type": "HowToStep", "text": "Couper la viande en cubes et la faire mariner dans le vin avec l’oignon, les carottes et le bouquet garni."}
+   ]},
+   {"@type": "HowToSection", "name": "Le jour même", "itemListElement": [
+     {"@type": "HowToStep", "text": "Égoutter la viande et la faire dorer avec les lardons."},
+     {"@type": "HowToStep", "text": "Saupoudrer de farine, mouiller avec la marinade et laisser mijoter 3 heures."},
+     {"@type": "HowToStep", "text": "Ajouter les champignons 30 minutes avant la fin de la cuisson."}
+   ]}
+ ]}
+</script>
+</head>
+<body></body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<!-- Hand-written fixture: older microdata where recipeInstructions is one
+     container <div> holding nested <div>s and paragraphs, which the old
+     non-nesting match cut off at the first </div>. Uses https itemtype and
+     the legacy "ingredients" property. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lentil Soup - Example Family Recipes</title>
+<meta property="og:title" content="Lentil Soup">
+<meta property="og:image" content="https://example.com/photos/lentil-soup.jpg">
+</head>
+<body>
+<article itemscope itemtype="https://schema.org/Recipe">
+  <h1 class="title" itemprop="name">Red Lentil Soup</h1>
+  <div class="info"><span itemprop="recipeYield">Serves 6</span></div>
+  <div class="ingredients">
+    <p itemprop="ingredients">1 tablespoon olive oil</p>
+    <p itemprop="ingredients">1 onion, diced</p>
+    <p itemprop="ingredients">2 carrots, diced</p>
+    <p itemprop="ingredients">1 1/2 cups red lentils</p>
+    <p itemprop="ingredients">6 cups stock</p>
+    <p itemprop="ingredients">Juice of 1 lemon</p>
+  </div>
+  <div itemprop="recipeInstructions">
+    <div class="step-group">
+      <div class="step"><p>Soften the onion and carrots in the oil for 8 minutes.</p></div>
+      <div class="step"><p>Add the lentils and stock and simmer for 20 minutes.</p></div>
+    </div>
+    <div class="step-group">
+      <div class="step"><p>Blend half the soup and stir it back in.</p></div>
+      <div class="step"><p>Finish with the lemon juice and season.</p></div>
+    </div>
+  </div>
+</article>
+</body>
+</html>
