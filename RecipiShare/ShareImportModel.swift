@@ -32,9 +32,17 @@ final class ShareImportModel {
 
     /// The page being imported, once a link was found in the shared item.
     @ObservationIgnored private var pageURL: URL?
+    /// The page as Safari had it loaded, when the share came from Safari.
+    @ObservationIgnored private var safariPage: SharedPage?
 
     func run() async {
-        guard let shared = await sharedURL() else {
+        // From Safari, the page as Safari loaded it; from other apps, a link.
+        safariPage = await sharedSafariPage()
+        var shared = safariPage?.url
+        if shared == nil {
+            shared = await sharedURL()
+        }
+        guard let shared else {
             state = .failed(message: "There's no link here to import.")
             return
         }
@@ -46,6 +54,12 @@ final class ShareImportModel {
             state = .alreadySaved(title: existing.title, draft: nil)
             return
         }
+        // Safari's copy has already run the page's scripts and passed any
+        // bot check, so try it before downloading the page again.
+        if let safariPage, let draft = try? RecipeImporter.recipe(in: safariPage) {
+            await showPreviewUnlessSaved(draft, allowingDuplicate: false)
+            return
+        }
         await importPage(url, allowingDuplicate: false)
     }
 
@@ -53,15 +67,20 @@ final class ShareImportModel {
         state = .importing
         do {
             let draft = try await RecipeImporter().importRecipe(from: url)
-            // The page may have redirected to a link that's already saved.
-            if !allowingDuplicate, let source = draft.sourceURL, let existing = savedRecipe(from: source) {
-                state = .alreadySaved(title: existing.title, draft: draft)
-                return
-            }
-            await showPreview(of: draft)
+            await showPreviewUnlessSaved(draft, allowingDuplicate: allowingDuplicate)
         } catch {
             state = .failed(message: Self.message(for: error))
         }
+    }
+
+    /// Shows the import, unless it turns out to be from a page that's
+    /// already saved (the page may have redirected to a saved link).
+    private func showPreviewUnlessSaved(_ draft: RecipeDraft, allowingDuplicate: Bool) async {
+        if !allowingDuplicate, let source = draft.sourceURL, let existing = savedRecipe(from: source) {
+            state = .alreadySaved(title: existing.title, draft: draft)
+            return
+        }
+        await showPreview(of: draft)
     }
 
     private func showPreview(of draft: RecipeDraft) async {
@@ -75,6 +94,8 @@ final class ShareImportModel {
     func saveAnotherCopy() async {
         guard case .alreadySaved(_, let draft) = state else { return }
         if let draft {
+            await showPreview(of: draft)
+        } else if let safariPage, let draft = try? RecipeImporter.recipe(in: safariPage) {
             await showPreview(of: draft)
         } else if let pageURL {
             await importPage(pageURL, allowingDuplicate: true)
@@ -163,6 +184,28 @@ final class ShareImportModel {
             }
         }
         return nil
+    }
+
+    /// The page Safari had loaded, which its preprocessing script hands
+    /// over as a property list. Nil for shares from other apps.
+    private func sharedSafariPage() async -> SharedPage? {
+        let items = extensionContext?.inputItems.compactMap { $0 as? NSExtensionItem } ?? []
+        let providers = items.flatMap { $0.attachments ?? [] }
+        for provider in providers where provider.hasItemConformingToTypeIdentifier(UTType.propertyList.identifier) {
+            if let page = await loadSafariPage(from: provider) {
+                return page
+            }
+        }
+        return nil
+    }
+
+    private func loadSafariPage(from provider: NSItemProvider) async -> SharedPage? {
+        await withCheckedContinuation { continuation in
+            provider.loadItem(forTypeIdentifier: UTType.propertyList.identifier, options: nil) { item, _ in
+                let results = (item as? NSDictionary)?[NSExtensionJavaScriptPreprocessingResultsKey] as? [AnyHashable: Any]
+                continuation.resume(returning: results.flatMap(SharedPage.init(preprocessingResults:)))
+            }
+        }
     }
 
     private func loadURL(from provider: NSItemProvider) async -> URL? {

@@ -102,6 +102,12 @@ public struct RecipeImporter: Sendable {
         throw problem?.error ?? RecipeImportError.noRecipeFound
     }
 
+    /// The recipe in a page that's already loaded, like the one Safari
+    /// hands the share extension. Nothing is fetched.
+    public static func recipe(in page: SharedPage) throws -> RecipeDraft {
+        tidied(try parse(html: page.html, sourceURL: page.url))
+    }
+
     /// The draft as it's saved: its link without tracking parameters.
     private static func tidied(_ draft: RecipeDraft) -> RecipeDraft {
         var draft = draft

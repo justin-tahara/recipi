@@ -12,9 +12,11 @@ expect and contributors know what every change has to keep.
 
 Only things you start, and only to the place they're meant for:
 
-- **A page you import, and its photos.** When you paste a link or share a
-  page from Safari, recipi downloads that page straight from the site, along
-  with the recipe's photo from wherever the page says it lives. If the page
+- **A page you import, and its photos.** When you share a page from
+  Safari, recipi reads the copy Safari already loaded, so the page isn't
+  downloaded again. When you paste a link, or Safari's copy has no recipe,
+  recipi downloads that page straight from the site. Either way it also
+  fetches the recipe's photo from wherever the page says it lives. If the page
   only builds its recipe with JavaScript, recipi opens it in a hidden web
   view that keeps no cookies and is thrown away afterwards; like any
   browser, that lets the page's own scripts run. The site sees an ordinary
