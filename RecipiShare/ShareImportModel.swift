@@ -9,11 +9,16 @@ import UniformTypeIdentifiers
 final class ShareImportModel {
     enum State {
         case importing
+        /// Imported and shown for a look, with its photo, before saving.
+        case preview(RecipeDraft)
+        case saving
         case saved(title: String)
         case failed(message: String)
     }
 
     private(set) var state: State = .importing
+    /// The photos the page offers and the one picked, once imported.
+    private(set) var photoChoice: ImportPhotoChoice?
 
     private let extensionContext: NSExtensionContext?
     @ObservationIgnored private var container: ModelContainer?
@@ -28,9 +33,30 @@ final class ShareImportModel {
             return
         }
         do {
+            let draft = try await RecipeImporter().importRecipe(from: url)
+            let photoChoice = ImportPhotoChoice(draft: draft)
+            self.photoChoice = photoChoice
+            state = .preview(draft)
+            await photoChoice.load()
+        } catch {
+            state = .failed(message: error.localizedDescription)
+        }
+    }
+
+    /// Whether the recipe can be saved now: it's imported and its best photo
+    /// isn't still loading.
+    var canSave: Bool {
+        guard case .preview = state else { return false }
+        return photoChoice?.isLoadingFirstPhoto != true
+    }
+
+    func save() async {
+        guard case .preview(let draft) = state else { return }
+        state = .saving
+        do {
             let container = try RecipiStore.makeContainer()
             self.container = container
-            let recipe = try await RecipeImporter().saveRecipe(from: url, into: container.mainContext)
+            let recipe = try RecipeImporter().save(draft, photoData: photoChoice?.selected?.data, into: container.mainContext)
             state = .saved(title: recipe.title)
             try? await Task.sleep(for: .seconds(1.2))
             finish()

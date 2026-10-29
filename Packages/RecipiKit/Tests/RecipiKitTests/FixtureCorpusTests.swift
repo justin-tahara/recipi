@@ -47,7 +47,7 @@ struct FixtureExpectation: Sendable, CustomTestStringConvertible {
         FixtureExpectation(
             file: "tasty-recipes", title: "Brown Butter Chocolate Chip Cookies", ingredients: 9, steps: 4,
             servings: 24, yieldText: "24 cookies",
-            imageURL: "https://example.net/wp-content/uploads/cookies-225x225.jpg",
+            imageURL: "https://example.net/wp-content/uploads/cookies.jpg",
             prepTime: 1_200, cookTime: 720, totalTime: 1_920
         ),
         FixtureExpectation(
@@ -90,7 +90,7 @@ struct FixtureExpectation: Sendable, CustomTestStringConvertible {
         FixtureExpectation(
             file: "image-object-array", title: "Miso Glazed Salmon", ingredients: 5, steps: 3,
             servings: 2, yieldText: "2 servings",
-            imageURL: "https://cdn.example.com/salmon/1x1-300.jpg",
+            imageURL: "https://cdn.example.com/salmon/4x3-1600.jpg",
             prepTime: 300, cookTime: 720, totalTime: 1_020
         ),
         FixtureExpectation(
@@ -173,6 +173,8 @@ struct FixtureCorpusTests {
         #expect(draft.totalTime == expected.totalTime)
         #expect(sectionRuns(draft.ingredients) == expected.ingredientSections)
         #expect(sectionRuns(draft.steps) == expected.stepSections)
+        #expect(draft.imageURL == draft.imageCandidates.first)
+        #expect(Set(draft.imageCandidates).count == draft.imageCandidates.count)
 
         // Nothing should leak through as markup, entities or checkbox glyphs.
         for line in [draft.title] + draft.ingredients.map(\.text) + draft.steps.map(\.text) {
