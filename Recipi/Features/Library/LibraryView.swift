@@ -270,6 +270,7 @@ private struct RecipeRow: View {
             Spacer(minLength: 0)
         }
         .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("library.recipe")
     }
 
     @ViewBuilder

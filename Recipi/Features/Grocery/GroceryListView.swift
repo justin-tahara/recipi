@@ -186,6 +186,7 @@ private struct GroceryRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("grocery.item")
         .sensoryFeedback(.selection, trigger: item.isChecked)
         .listRowBackground(Theme.Colors.background)
         .listRowSeparatorTint(Theme.Colors.divider)

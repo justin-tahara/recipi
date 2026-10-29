@@ -112,6 +112,7 @@ struct CookingModeView: View {
                 }
             }
             .buttonStyle(.recipiPrimary)
+            .accessibilityIdentifier("cooking.next")
         }
         .padding(.horizontal, Theme.Spacing.page)
         .padding(.top, Theme.Spacing.sm)

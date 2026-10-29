@@ -9,10 +9,23 @@ struct RecipiApp: App {
 
     init() {
         do {
-            container = try RecipiStore.makeContainer()
+            container = try Self.makeContainer()
         } catch {
             fatalError("Couldn't open the recipe store: \(error)")
         }
+    }
+
+    private static func makeContainer() throws -> ModelContainer {
+        #if DEBUG
+        // Tests get a throwaway store and canned web pages. An unsigned
+        // simulator build has no App Group or iCloud entitlement, so the
+        // real store isn't available to them anyway.
+        if TestSupport.isActive {
+            TestSupport.stubNetwork()
+            return try RecipiStore.makeContainer(inMemory: true)
+        }
+        #endif
+        return try RecipiStore.makeContainer()
     }
 
     var body: some Scene {
