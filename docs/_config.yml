@@ -1,0 +1,5 @@
+# GitHub Pages site for recipi, built from this folder on main.
+# Pages serves it at https://justin-tahara.github.io/recipi/.
+title: recipi
+description: A free, open-source recipe app for iPhone and iPad.
+theme: jekyll-theme-minimal
