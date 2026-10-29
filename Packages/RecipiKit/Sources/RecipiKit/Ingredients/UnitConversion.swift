@@ -3,7 +3,7 @@ import Foundation
 /// How amounts are shown: exactly as the recipe wrote them, or in US or
 /// metric units. Conversion is like-for-like only (volume to volume, weight
 /// to weight), so a cup of flour never turns into grams.
-public enum MeasurementPreference: String, CaseIterable, Identifiable, Sendable {
+public enum MeasurementPreference: String, CaseIterable, Identifiable, Sendable, PreferenceValue {
     case asWritten
     case us
     case metric
