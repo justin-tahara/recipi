@@ -20,6 +20,7 @@ struct SettingsView: View {
                 Group {
                     measurementsSection
                     syncSection
+                    TranslationSettingsSection(preferences: preferences)
                     aboutSection
                 }
                 .listRowBackground(Theme.Colors.elevated)
