@@ -22,35 +22,47 @@ public enum RecipiStore {
         configuration: AppConfiguration = .current,
         inMemory: Bool = false
     ) throws -> ModelContainer {
-        let schema = Self.schema
-        let modelConfiguration: ModelConfiguration
-        if inMemory {
-            modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
-        } else {
-            let groupContainer: ModelConfiguration.GroupContainer
-            if let appGroupID = configuration.appGroupID {
-                groupContainer = .identifier(appGroupID)
-            } else {
-                groupContainer = .automatic
-            }
-            // SwiftData can't turn CloudKit on or off for a container that's
-            // already open, so the preference is read here and a change
-            // applies the next time the app or the extension starts.
-            let iCloudSyncEnabled = UserDefaults.appGroup(configuration).preference(PreferenceKeys.iCloudSync)
-            let cloudKitDatabase: ModelConfiguration.CloudKitDatabase
-            switch cloudSync(for: configuration, iCloudSyncEnabled: iCloudSyncEnabled) {
-            case .off:
-                cloudKitDatabase = .none
-            case .privateDatabase(let containerID):
-                cloudKitDatabase = .private(containerID)
-            }
-            modelConfiguration = ModelConfiguration(
-                schema: schema,
-                groupContainer: groupContainer,
-                cloudKitDatabase: cloudKitDatabase
-            )
-        }
+        let modelConfiguration = Self.modelConfiguration(
+            for: configuration,
+            defaults: .appGroup(configuration),
+            inMemory: inMemory
+        )
         return try ModelContainer(for: schema, configurations: [modelConfiguration])
+    }
+
+    /// How `makeContainer` sets up the store. Split out so tests can check
+    /// the sync setting without opening a real store.
+    ///
+    /// SwiftData can't turn CloudKit on or off for a container that's
+    /// already open, so the iCloud sync preference is read from `defaults`
+    /// here, and a change applies the next time the app or the extension
+    /// starts.
+    public static func modelConfiguration(
+        for configuration: AppConfiguration,
+        defaults: UserDefaults,
+        inMemory: Bool = false
+    ) -> ModelConfiguration {
+        if inMemory {
+            return ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
+        }
+        let groupContainer: ModelConfiguration.GroupContainer
+        if let appGroupID = configuration.appGroupID {
+            groupContainer = .identifier(appGroupID)
+        } else {
+            groupContainer = .automatic
+        }
+        let cloudKitDatabase: ModelConfiguration.CloudKitDatabase
+        switch cloudSync(for: configuration, defaults: defaults) {
+        case .off:
+            cloudKitDatabase = .none
+        case .privateDatabase(let containerID):
+            cloudKitDatabase = .private(containerID)
+        }
+        return ModelConfiguration(
+            schema: schema,
+            groupContainer: groupContainer,
+            cloudKitDatabase: cloudKitDatabase
+        )
     }
 
     /// Whether the store syncs, and where.
@@ -68,6 +80,12 @@ public enum RecipiStore {
             return .off
         }
         return .privateDatabase(containerID: containerID)
+    }
+
+    /// The same, with the person's choice read from `defaults` (the App
+    /// Group's, outside tests), the way the store reads it when it opens.
+    public static func cloudSync(for configuration: AppConfiguration, defaults: UserDefaults) -> CloudSync {
+        cloudSync(for: configuration, iCloudSyncEnabled: defaults.preference(PreferenceKeys.iCloudSync))
     }
 }
 

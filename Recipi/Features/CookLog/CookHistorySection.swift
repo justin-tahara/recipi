@@ -12,6 +12,8 @@ struct CookHistorySection: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Cards grow with Dynamic Type so their text still fits.
+    @ScaledMetric(relativeTo: .footnote) private var cardSize: CGFloat = 120
 
     var body: some View {
         let logs = recipe.sortedCookLogs
@@ -43,11 +45,14 @@ struct CookHistorySection: View {
             VStack(spacing: Theme.Spacing.xs) {
                 Image(systemName: "plus")
                     .font(.title3.weight(.semibold))
+                    .accessibilityHidden(true)
                 Text("I made this")
                     .font(Theme.Fonts.label)
+                    .multilineTextAlignment(.center)
             }
             .foregroundStyle(Theme.Colors.accent)
-            .frame(width: 120, height: 120)
+            .padding(Theme.Spacing.xs)
+            .frame(width: cardSize, height: cardSize)
             .background(Theme.Colors.accentSoft, in: RoundedRectangle(cornerRadius: Theme.Radius.medium, style: .continuous))
         }
         .buttonStyle(.pressable)
@@ -66,9 +71,10 @@ struct CookHistorySection: View {
                                 .font(.title3.weight(.semibold))
                                 .foregroundStyle(Theme.Colors.textTertiary)
                         }
+                        .accessibilityHidden(true)
                 }
             }
-            .frame(width: 120, height: 120)
+            .frame(width: cardSize, height: cardSize)
             .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.medium, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: Theme.Radius.medium, style: .continuous)
@@ -85,21 +91,40 @@ struct CookHistorySection: View {
                     .lineLimit(2)
             }
         }
-        .frame(width: 120, alignment: .leading)
-        .accessibilityElement(children: .combine)
+        .frame(width: cardSize, alignment: .leading)
+        // "Cooked Oct 3, 2026, with a photo", then the note. The long-press
+        // menu's actions are VoiceOver actions too.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Self.voiceOverLabel(for: log))
+        .accessibilityValue(log.note)
+        .accessibilityActions {
+            if log.photoData != nil {
+                Button("Use as cover photo") { useAsCover(log) }
+            }
+            Button("Delete") { delete(log) }
+        }
         .contextMenu {
             if log.photoData != nil {
-                Button("Use as cover photo", systemImage: "photo") {
-                    withMotion(Motion.smooth, reduceMotion: reduceMotion) {
-                        recipe.photoData = log.photoData
-                    }
-                }
+                Button("Use as cover photo", systemImage: "photo") { useAsCover(log) }
             }
-            Button("Delete", systemImage: "trash", role: .destructive) {
-                withMotion(Motion.snappy, reduceMotion: reduceMotion) {
-                    recipe.deleteCookLog(log, in: modelContext)
-                }
-            }
+            Button("Delete", systemImage: "trash", role: .destructive) { delete(log) }
+        }
+    }
+
+    private static func voiceOverLabel(for log: CookLog) -> String {
+        let date = "Cooked \(log.cookedAt.formatted(date: .abbreviated, time: .omitted))"
+        return log.photoData == nil ? date : "\(date), with a photo"
+    }
+
+    private func useAsCover(_ log: CookLog) {
+        withMotion(Motion.smooth, reduceMotion: reduceMotion) {
+            recipe.photoData = log.photoData
+        }
+    }
+
+    private func delete(_ log: CookLog) {
+        withMotion(Motion.snappy, reduceMotion: reduceMotion) {
+            recipe.deleteCookLog(log, in: modelContext)
         }
     }
 }

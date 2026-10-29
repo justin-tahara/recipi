@@ -13,6 +13,7 @@ struct HaveAmountSheet: View {
     @State private var amountText = ""
     @State private var unit: String?
     @FocusState private var isAmountFocused: Bool
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         NavigationStack {
@@ -30,7 +31,11 @@ struct HaveAmountSheet: View {
                     Text("I have")
                         .font(Theme.Fonts.label)
                         .foregroundStyle(Theme.Colors.textSecondary)
-                    HStack(spacing: Theme.Spacing.sm) {
+                    // The unit goes under the field at the accessibility sizes.
+                    let layout = dynamicTypeSize.isAccessibilitySize
+                        ? AnyLayout(VStackLayout(alignment: .leading, spacing: Theme.Spacing.xs))
+                        : AnyLayout(HStackLayout(spacing: Theme.Spacing.sm))
+                    layout {
                         TextField("Amount", text: $amountText)
                             .keyboardType(.decimalPad)
                             .focused($isAmountFocused)
@@ -44,7 +49,7 @@ struct HaveAmountSheet: View {
                             Text(name)
                                 .font(Theme.Fonts.body)
                                 .foregroundStyle(Theme.Colors.textSecondary)
-                                .lineLimit(1)
+                                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                         } else {
                             Picker("Unit", selection: $unit) {
                                 ForEach(unitChoices, id: \.self) { choice in

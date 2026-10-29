@@ -33,7 +33,6 @@ struct TagFilterBar: View {
                 manageButton
             }
             .padding(.horizontal, Theme.Spacing.page)
-            .padding(.vertical, 2)
         }
         .sensoryFeedback(.selection, trigger: filter)
         .onChange(of: sections.flatMap(\.chips)) { _, available in
@@ -67,14 +66,18 @@ struct TagFilterBar: View {
             Rectangle()
                 .fill(Theme.Colors.divider)
                 .frame(width: 1, height: 18)
+                .accessibilityHidden(true)
             Text(section.title)
                 .font(Theme.Fonts.eyebrow)
                 .textCase(.uppercase)
-                .foregroundStyle(Theme.Colors.textTertiary)
+                // Secondary, like the recipe page's eyebrows: the tertiary
+                // gray passes on paper but sits too close to the line at
+                // the largest text sizes, where the audit flagged it.
+                .foregroundStyle(Theme.Colors.textSecondary)
                 .fixedSize()
         }
         .padding(.leading, Theme.Spacing.xxs)
-        .accessibilityHidden(true)
+        .accessibilityAddTraits(.isHeader)
     }
 
     private func chip(_ facet: TagFacet, color: TagColor) -> some View {
@@ -92,10 +95,12 @@ struct TagFilterBar: View {
                         Circle().fill(color.foreground)
                     }
                     .frame(width: 13, height: 7)
+                    .accessibilityHidden(true)
                 } else {
                     Circle()
                         .fill(color.foreground)
                         .frame(width: 7, height: 7)
+                        .accessibilityHidden(true)
                 }
                 Text(facet.name)
                     .lineLimit(1)
@@ -122,6 +127,8 @@ struct TagFilterBar: View {
 }
 
 /// A chip's shape: filled in its tag color when picked, outlined otherwise.
+/// The capsule is drawn at the text's size; the chip takes touches across a
+/// full 44 pt height.
 private struct ChipStyle: ViewModifier {
     let isSelected: Bool
     let color: TagColor
@@ -140,5 +147,7 @@ private struct ChipStyle: ViewModifier {
                     Capsule().strokeBorder(Theme.Colors.border, lineWidth: 0.5)
                 }
             }
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
     }
 }
