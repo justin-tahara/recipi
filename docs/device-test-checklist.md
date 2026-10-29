@@ -3,7 +3,8 @@
 A walk-through to run on a real iPhone before a TestFlight build. It covers
 link import, the share sheet and the features that landed on Oct 29 (units,
 scaling, cook log, auto tags, translation, backup). Nothing here has been
-tried on a device yet; CI only runs a simulator smoke test.
+tried on a device yet; CI only runs a simulator smoke test. The last section
+covers the follow-up PRs (#50 to #56) once they're merged.
 
 Tick each box, and open an issue for anything that's off (a screenshot helps).
 
@@ -111,3 +112,24 @@ Tick each box, and open an issue for anything that's off (a screenshot helps).
       important is cut off.
 - [ ] Cooking mode keeps the screen awake, and checking off ingredients and
       moving between steps works with wet-hands-sized taps.
+
+## After the follow-up PRs merge (#50 to #56)
+
+- [ ] Import errors read right: a link to a page that doesn't exist says the
+      page wasn't found; a link to a PDF or photo says it's a file; airplane
+      mode says you're offline.
+- [ ] A site that blocks bots: if a link fails with "didn't let recipi read
+      the page", note the site. It helps decide whether the share extension
+      should read the page Safari already loaded.
+- [ ] Share a recipe you've already saved: "Already in recipi" shows, with
+      Done and Save another copy.
+- [ ] Share a Google AMP link (from Google search results) and a link inside
+      a message with other text: the real recipe page imports.
+- [ ] Settings, About: Privacy policy and Support open the pages (only after
+      GitHub Pages is turned on for `main` / `docs`).
+- [ ] VoiceOver run-through (triple-click the side button if you set it as
+      the accessibility shortcut): import a recipe, open it, scale it, start
+      cooking, step through, and add to the grocery list. Every button says
+      what it does and nothing important is skipped.
+- [ ] The largest text size (Accessibility, Larger Text): library rows, the
+      recipe page and cooking mode still read without clipped text.
