@@ -4,6 +4,8 @@ import SwiftData
 import SwiftUI
 
 struct GroceryListView: View {
+    /// The add row's icon column, as wide as the rows' checkboxes.
+    @ScaledMetric(relativeTo: .body) private var iconWidth: CGFloat = 22
     @Environment(\.modelContext) private var modelContext
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Query(sort: \GroceryItem.createdAt) private var items: [GroceryItem]
@@ -92,7 +94,7 @@ struct GroceryListView: View {
             Image(systemName: "plus")
                 .font(.body.weight(.semibold))
                 .foregroundStyle(Theme.Colors.accent)
-                .frame(width: 22)
+                .frame(width: iconWidth)
                 .accessibilityHidden(true)
             TextField("Add an item", text: $newItemText)
                 .foregroundStyle(Theme.Colors.textPrimary)
@@ -114,6 +116,8 @@ struct GroceryListView: View {
         .font(Theme.Fonts.eyebrow)
         .textCase(.uppercase)
         .tracking(0.8)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
     }
 
     private var uncheckedItems: [GroceryItem] {
@@ -175,10 +179,11 @@ private struct GroceryRow: View {
                 Checkbox(isOn: item.isChecked)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(item.text)
+                        .font(Theme.Fonts.body)
                         .strikethrough(item.isChecked, color: Theme.Colors.textTertiary)
                         .foregroundStyle(item.isChecked ? Theme.Colors.textTertiary : Theme.Colors.textPrimary)
                     if let recipeTitle = item.recipeTitle, !recipeTitle.isEmpty {
-                        TagPill(recipeTitle)
+                        TagPill(recipeTitle, accessibilityLabel: "From \(recipeTitle)")
                     }
                 }
                 Spacer(minLength: 0)
@@ -190,6 +195,7 @@ private struct GroceryRow: View {
         .sensoryFeedback(.selection, trigger: item.isChecked)
         .listRowBackground(Theme.Colors.background)
         .listRowSeparatorTint(Theme.Colors.divider)
-        .accessibilityAddTraits(item.isChecked ? .isSelected : [])
+        .checkedState(item.isChecked)
+        .accessibilityHint(item.isChecked ? "Moves it back to To buy" : "Moves it to In the cart")
     }
 }

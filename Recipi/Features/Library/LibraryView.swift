@@ -20,15 +20,23 @@ struct LibraryView: View {
         NavigationStack {
             Group {
                 if recipes.isEmpty {
-                    EmptyStateView(
-                        symbol: "fork.knife",
-                        title: "No recipes yet",
-                        message: "Import one from a link, share a page from Safari, or add your own."
-                    ) {
-                        Button("Import from link", systemImage: "link") { isShowingImport = true }
-                            .buttonStyle(.recipiPrimary)
-                        Button("Add manually", systemImage: "square.and.pencil", action: addManually)
-                            .buttonStyle(.recipiSecondary)
+                    // Centered, and scrolls when large text makes it taller
+                    // than the screen.
+                    GeometryReader { proxy in
+                        ScrollView {
+                            EmptyStateView(
+                                symbol: "fork.knife",
+                                title: "No recipes yet",
+                                message: "Import one from a link, share a page from Safari, or add your own."
+                            ) {
+                                Button("Import from link", systemImage: "link") { isShowingImport = true }
+                                    .buttonStyle(.recipiPrimary)
+                                Button("Add manually", systemImage: "square.and.pencil", action: addManually)
+                                    .buttonStyle(.recipiSecondary)
+                            }
+                            .frame(minHeight: proxy.size.height)
+                        }
+                        .scrollBounceBehavior(.basedOnSize)
                     }
                 } else {
                     recipeList
@@ -183,23 +191,34 @@ private struct RecipeRow: View {
     let recipe: Recipe
     let zoomNamespace: Namespace.ID
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .body) private var photoSize: CGFloat = 64
+
     var body: some View {
-        HStack(spacing: Theme.Spacing.md) {
+        let isLarge = dynamicTypeSize.isAccessibilitySize
+        // At the accessibility sizes the photo sits above the text, so the
+        // title gets the full width.
+        let layout = isLarge
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Theme.Spacing.sm))
+            : AnyLayout(HStackLayout(spacing: Theme.Spacing.md))
+        layout {
             RecipePhoto(data: recipe.photoData, title: recipe.title)
-                .frame(width: 64, height: 64)
+                .frame(width: photoSize, height: photoSize)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.medium, style: .continuous))
                 .overlay {
                     RoundedRectangle(cornerRadius: Theme.Radius.medium, style: .continuous)
                         .strokeBorder(Theme.Colors.divider, lineWidth: 0.5)
                 }
                 .zoomTransitionSource(id: recipe.persistentModelID, in: zoomNamespace)
+                // The title is read right after it.
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(recipe.title.isEmpty ? "Untitled recipe" : recipe.title)
                         .font(Theme.Fonts.rowTitle)
                         .foregroundStyle(Theme.Colors.textPrimary)
-                        .lineLimit(2)
+                        .lineLimit(isLarge ? nil : 2)
                     if recipe.isFavorite {
                         Image(systemName: "heart.fill")
                             .font(.caption)
@@ -213,6 +232,8 @@ private struct RecipeRow: View {
             Spacer(minLength: 0)
         }
         .accessibilityElement(children: .combine)
+        // The hidden NavigationLink behind the row does the opening.
+        .accessibilityAddTraits(.isButton)
         .accessibilityIdentifier("library.recipe")
     }
 
@@ -220,24 +241,35 @@ private struct RecipeRow: View {
     private var meta: some View {
         let tags = recipe.sortedTags
         if recipe.totalTime != nil || recipe.lastCookedAt != nil || !tags.isEmpty {
-            HStack(spacing: Theme.Spacing.xs) {
+            // One line normally; at the accessibility sizes it wraps.
+            let layout = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(FlowLayout(spacing: Theme.Spacing.xs))
+                : AnyLayout(HStackLayout(spacing: Theme.Spacing.xs))
+            layout {
                 if let lastCookedAt = recipe.lastCookedAt {
+                    let when = lastCookedAt.formatted(.relative(presentation: .named))
                     HStack(spacing: 3) {
                         Image(systemName: "checkmark.seal")
-                        Text(lastCookedAt.formatted(.relative(presentation: .named)))
+                            .accessibilityHidden(true)
+                        Text(when)
                     }
                     .font(.footnote)
                     .foregroundStyle(Theme.Colors.textSecondary)
                     .lineLimit(1)
-                    .accessibilityLabel("Cooked \(lastCookedAt.formatted(.relative(presentation: .named)))")
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Cooked \(when)")
                 }
                 if let totalTime = recipe.totalTime {
+                    let duration = RecipeFormat.duration(totalTime)
                     HStack(spacing: 3) {
                         Image(systemName: "clock")
-                        Text(RecipeFormat.duration(totalTime))
+                            .accessibilityHidden(true)
+                        Text(duration)
                     }
                     .font(.footnote)
                     .foregroundStyle(Theme.Colors.textSecondary)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Total time \(duration)")
                 }
                 ForEach(tags.prefix(2)) { tag in
                     TagPill(tag.name, color: tag.color)

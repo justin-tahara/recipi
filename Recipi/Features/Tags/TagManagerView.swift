@@ -101,10 +101,15 @@ struct TagManagerView: View {
 private struct TagManagerRow: View {
     let tag: Tag
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
         let count = tag.recipes?.count ?? 0
-        HStack(spacing: Theme.Spacing.sm) {
-            TagPill(tag.name, color: tag.color)
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Theme.Spacing.xxs))
+            : AnyLayout(HStackLayout(spacing: Theme.Spacing.sm))
+        layout {
+            TagPill(tag.name, color: tag.color, accessibilityLabel: tag.name)
             Spacer(minLength: Theme.Spacing.xs)
             Text(count == 1 ? "1 recipe" : "\(count) recipes")
                 .font(Theme.Fonts.meta)

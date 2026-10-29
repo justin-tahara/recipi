@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 import Testing
 @testable import RecipiKit
 
@@ -130,5 +131,46 @@ struct CloudSyncChoiceTests {
     @Test func staysLocalWithoutAContainer() {
         let noContainer = AppConfiguration(appGroupID: nil, cloudKitContainerID: nil)
         #expect(RecipiStore.cloudSync(for: noContainer, iCloudSyncEnabled: true) == .off)
+    }
+}
+
+/// The store reads the sync preference when it opens, so these stand in for
+/// a relaunch: change the stored value, then build the configuration again.
+struct StoreConfigurationTests {
+    private let configuration = AppConfiguration(appGroupID: nil, cloudKitContainerID: "iCloud.test")
+
+    @Test func syncsByDefault() {
+        withScratchDefaults { defaults in
+            #expect(RecipiStore.cloudSync(for: configuration, defaults: defaults) == .privateDatabase(containerID: "iCloud.test"))
+            let modelConfiguration = RecipiStore.modelConfiguration(for: configuration, defaults: defaults)
+            #expect(modelConfiguration.cloudKitContainerIdentifier == "iCloud.test")
+        }
+    }
+
+    @Test func turningSyncOffAppliesOnTheNextOpen() {
+        withScratchDefaults { defaults in
+            defaults.setPreference(false, for: PreferenceKeys.iCloudSync)
+            #expect(RecipiStore.cloudSync(for: configuration, defaults: defaults) == .off)
+            let modelConfiguration = RecipiStore.modelConfiguration(for: configuration, defaults: defaults)
+            #expect(modelConfiguration.cloudKitContainerIdentifier == nil)
+        }
+    }
+
+    @Test func turningSyncBackOnAppliesOnTheNextOpen() {
+        withScratchDefaults { defaults in
+            defaults.setPreference(false, for: PreferenceKeys.iCloudSync)
+            defaults.setPreference(true, for: PreferenceKeys.iCloudSync)
+            #expect(RecipiStore.cloudSync(for: configuration, defaults: defaults) == .privateDatabase(containerID: "iCloud.test"))
+            let modelConfiguration = RecipiStore.modelConfiguration(for: configuration, defaults: defaults)
+            #expect(modelConfiguration.cloudKitContainerIdentifier == "iCloud.test")
+        }
+    }
+
+    @Test func inMemoryStoreNeverSyncs() {
+        withScratchDefaults { defaults in
+            let modelConfiguration = RecipiStore.modelConfiguration(for: configuration, defaults: defaults, inMemory: true)
+            #expect(modelConfiguration.isStoredInMemoryOnly)
+            #expect(modelConfiguration.cloudKitContainerIdentifier == nil)
+        }
     }
 }

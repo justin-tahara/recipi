@@ -9,6 +9,11 @@ RECIPI_BUNDLE_ID = $(RECIPI_BUNDLE_ID_PREFIX).recipi
 RECIPI_APP_GROUP_ID = group.$(RECIPI_BUNDLE_ID)
 RECIPI_CLOUDKIT_CONTAINER_ID = iCloud.$(RECIPI_BUNDLE_ID)
 
+// CloudKit's push environment: the development one while working, the
+// production one for archives that go to TestFlight and the App Store.
+RECIPI_APS_ENVIRONMENT = development
+RECIPI_APS_ENVIRONMENT[config=Release] = production
+
 CODE_SIGN_STYLE = Automatic
 DEVELOPMENT_TEAM =
 

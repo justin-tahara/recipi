@@ -31,6 +31,7 @@ struct TranslationBanner: View {
     @State private var isTranslating = false
     @State private var failureMessage: String?
     @State private var isConfirmingShowOriginal = false
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         if let mode {
@@ -124,7 +125,11 @@ struct TranslationBanner: View {
     }
 
     private func row<Action: View>(_ message: String, @ViewBuilder action: () -> Action) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.xs) {
+        // The button goes under the message at the accessibility sizes.
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Theme.Spacing.xs))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: Theme.Spacing.xs))
+        return layout {
             Text(message)
                 .foregroundStyle(Theme.Colors.textPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -133,11 +138,17 @@ struct TranslationBanner: View {
     }
 
     private func actionButton(_ title: String, action: @escaping () -> Void) -> some View {
-        Button(title, action: action)
-            .buttonStyle(.borderless)
-            .fontWeight(.semibold)
-            .foregroundStyle(Theme.Colors.accent)
-            .multilineTextAlignment(.trailing)
+        Button(action: action) {
+            Text(title)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.borderless)
+        .fontWeight(.semibold)
+        .foregroundStyle(Theme.Colors.accent)
+        .multilineTextAlignment(dynamicTypeSize.isAccessibilitySize ? .leading : .trailing)
+        // A 44 pt target without making the callout taller.
+        .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? 0 : -Theme.Spacing.sm)
     }
 
     private func symbol(for mode: Mode) -> String {

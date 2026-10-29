@@ -7,6 +7,8 @@ struct ShareImportView: View {
     let model: ShareImportModel
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .title) private var statusSize: CGFloat = 64
+    @ScaledMetric(relativeTo: .title) private var statusIconSize: CGFloat = 28
 
     var body: some View {
         NavigationStack {
@@ -15,7 +17,8 @@ struct ShareImportView: View {
                 case .importing:
                     ProgressView()
                         .controlSize(.large)
-                        .frame(width: 64, height: 64)
+                        .frame(width: statusSize, height: statusSize)
+                        .accessibilityHidden(true)
                     Text("Reading recipe…")
                         .font(Theme.Fonts.meta)
                         .foregroundStyle(Theme.Colors.textSecondary)
@@ -33,7 +36,8 @@ struct ShareImportView: View {
                 case .saving:
                     ProgressView()
                         .controlSize(.large)
-                        .frame(width: 64, height: 64)
+                        .frame(width: statusSize, height: statusSize)
+                        .accessibilityHidden(true)
                     Text("Saving recipe…")
                         .font(Theme.Fonts.meta)
                         .foregroundStyle(Theme.Colors.textSecondary)
@@ -99,9 +103,9 @@ struct ShareImportView: View {
 
     private func statusIcon(_ symbol: String, color: TagColor) -> some View {
         Image(systemName: symbol)
-            .font(.system(size: 28, weight: .bold))
+            .font(.system(size: statusIconSize, weight: .bold))
             .foregroundStyle(color.foreground)
-            .frame(width: 64, height: 64)
+            .frame(width: statusSize, height: statusSize)
             .background(color.background, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
             .bounceEffect(value: phase)
             .accessibilityHidden(true)
@@ -114,6 +118,8 @@ private struct SharePreview: View {
     let draft: RecipeDraft
     @Bindable var photos: ImportPhotoChoice
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
             Color.clear
@@ -125,7 +131,7 @@ private struct SharePreview: View {
                 Text(draft.title)
                     .font(Theme.Fonts.rowTitle)
                     .foregroundStyle(Theme.Colors.textPrimary)
-                    .lineLimit(2)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                 Text("^[\(draft.ingredients.count) ingredient](inflect: true) · ^[\(draft.steps.count) step](inflect: true)")
                     .font(Theme.Fonts.meta)
                     .foregroundStyle(Theme.Colors.textSecondary)
