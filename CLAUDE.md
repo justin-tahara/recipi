@@ -68,7 +68,10 @@ These fail at runtime, not compile time:
 `FallbackRecipeParser` (microdata, WP Recipe Maker, Tasty Recipes). With no
 recipe in the served HTML it follows a meta refresh or an AMP page's
 canonical link, then renders the page in an offscreen `WKWebView`
-(`RenderedPageReader`). When a real site fails, capture it with
+(`RenderedPageReader`). Shares from Safari skip the download: the
+extension's preprocessing script (`RecipiShare/Resources/SafariPage.js`)
+hands over the page as Safari loaded it (`SharedPage`), and
+`RecipeImporter.recipe(in:)` parses that first. When a real site fails, capture it with
 `scripts/capture_fixture.py` into `Tests/RecipiKitTests/Fixtures/` and add a
 row in `FixtureCorpusTests.swift` before changing the parser. Name fixtures
 after the markup pattern they show. The nightly live check
