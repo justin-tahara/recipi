@@ -179,6 +179,7 @@ private struct GroceryRow: View {
                 Checkbox(isOn: item.isChecked)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(item.text)
+                        .font(Theme.Fonts.body)
                         .strikethrough(item.isChecked, color: Theme.Colors.textTertiary)
                         .foregroundStyle(item.isChecked ? Theme.Colors.textTertiary : Theme.Colors.textPrimary)
                     if let recipeTitle = item.recipeTitle, !recipeTitle.isEmpty {
