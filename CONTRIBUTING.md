@@ -89,21 +89,24 @@ template.
 
 ## Privacy rules
 
-These are the promises recipi makes, so every change has to keep them:
+These are the promises recipi makes (see [PRIVACY.md](PRIVACY.md)), so every
+change has to keep them:
 
 - Recipes stay on the device and in the person's own iCloud (private
-  database). There is no recipi server.
+  database, never the public or shared one). There is no recipi server.
 - No accounts and no sign-in.
 - No analytics, crash reporting, ads or tracking SDKs, and no third-party
-  dependencies that phone home.
+  dependencies at all: `Package.swift` and `project.yml` use Apple
+  frameworks only.
 - The only network requests are ones the person starts: fetching a page
-  they import and its photo. Apple services they opt into (iCloud, on-device
-  translation downloads) are the only other exception.
+  they import and its photo. Apple services they opt into (iCloud sync,
+  on-device translation downloads, Reminders) are the only other exception.
 - Parsing and any smart features run on the device. Nobody's recipes are
   used to train anything.
 
 If a change needs a network call or a new dependency, say so in the pull
-request and explain why, so it can be discussed first.
+request and explain why, so it can be discussed first. The pull request
+template has a checkbox for this.
 
 ## Pull requests
 
