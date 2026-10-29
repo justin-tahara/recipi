@@ -88,6 +88,13 @@ struct RecipeDetailView: View {
                     Button("Edit", systemImage: "pencil") { isEditing = true }
                     Button("Add to grocery list", systemImage: "cart.badge.plus", action: addToGroceryList)
                     Button("I made this", systemImage: "checkmark.seal") { isLoggingCook = true }
+                    // No photos: a shared file leaves them out anyway.
+                    ShareLink(
+                        item: RecipeShareFile(recipe: BackupRecipe(recipe, includingPhotos: false)),
+                        preview: SharePreview(displayTitle)
+                    ) {
+                        Label("Share recipe file", systemImage: "square.and.arrow.up")
+                    }
                 } label: {
                     Label("More", systemImage: "ellipsis.circle")
                 }

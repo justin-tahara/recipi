@@ -42,20 +42,33 @@ public enum RecipiBackup {
                 try writer.addFile(named: path, contents: photo)
                 photoPath = path
             }
-            let json = try jsonLD(for: recipe, photoPath: photoPath)
+            var cookPhotoPaths: [String?] = []
+            for (index, cook) in recipe.cookLog.enumerated() {
+                guard let photo = cook.photoData, !photo.isEmpty else {
+                    cookPhotoPaths.append(nil)
+                    continue
+                }
+                let path = "\(photosFolder)\(baseName)-cook-\(index + 1).\(photoFileExtension(for: photo))"
+                try writer.addFile(named: path, contents: photo)
+                cookPhotoPaths.append(path)
+            }
+            let json = try jsonLD(for: recipe, photoPath: photoPath, cookPhotoPaths: cookPhotoPaths)
             try writer.addFile(named: "\(recipesFolder)\(baseName).json", contents: json)
         }
         return try writer.archive()
     }
 
-    /// One recipe as a standalone JSON-LD file, for sharing. It has no
-    /// photo, since a single file can't carry one alongside.
+    /// One recipe as a standalone JSON-LD file, for sharing with someone.
+    /// It has no photo, since a single file can't carry one alongside, and
+    /// leaves out the cook history, which is the sender's own.
     public static func jsonLD(for recipe: BackupRecipe) throws -> Data {
-        try jsonLD(for: recipe, photoPath: nil)
+        var shared = recipe
+        shared.cookLog = []
+        return try jsonLD(for: shared, photoPath: nil, cookPhotoPaths: [])
     }
 
-    static func jsonLD(for recipe: BackupRecipe, photoPath: String?) throws -> Data {
-        try makeEncoder().encode(JSONLDRecipe(recipe, photoPath: photoPath))
+    static func jsonLD(for recipe: BackupRecipe, photoPath: String?, cookPhotoPaths: [String?] = []) throws -> Data {
+        try makeEncoder().encode(JSONLDRecipe(recipe, photoPath: photoPath, cookPhotoPaths: cookPhotoPaths))
     }
 
     // MARK: Reading
@@ -66,8 +79,8 @@ public enum RecipiBackup {
         if data.starts(with: [0x50, 0x4B]) { // "PK", a zip
             return try readArchive(data)
         }
-        let (recipe, _) = try decodeRecipe(from: data)
-        return BackupContents(recipes: [recipe], unreadableFiles: [])
+        let decoded = try decodeRecipe(from: data)
+        return BackupContents(recipes: [decoded.recipe], unreadableFiles: [])
     }
 
     static func readArchive(_ data: Data) throws -> BackupContents {
@@ -117,38 +130,49 @@ public enum RecipiBackup {
         var recipes: [BackupRecipe] = []
         var unreadable: [String] = []
         for entry in recipeEntries {
-            let decoded: (BackupRecipe, imagePath: String?)
+            let decoded: DecodedRecipe
             do {
                 decoded = try decodeRecipe(from: try zip.contents(of: entry))
             } catch {
                 unreadable.append(entry.name)
                 continue
             }
-            var recipe = decoded.0
-            let imagePath = decoded.imagePath
+            var recipe = decoded.recipe
             // A photo that's missing or damaged doesn't stop its recipe
             // from coming back; it's listed as unreadable instead.
-            if let imagePath, isArchivePath(imagePath) {
-                let photoName = root + imagePath
+            func photo(at path: String) -> Data? {
+                guard isArchivePath(path) else { return nil }
+                let name = root + path
                 do {
-                    if let photo = try zip.contents(named: photoName) {
-                        recipe.photoData = photo
-                    } else {
-                        unreadable.append(photoName)
-                    }
+                    if let photo = try zip.contents(named: name) { return photo }
                 } catch {
-                    unreadable.append(photoName)
+                    // Listed below, like a missing file.
                 }
+                unreadable.append(name)
+                return nil
+            }
+            if let imagePath = decoded.imagePath {
+                recipe.photoData = photo(at: imagePath)
+            }
+            for (index, path) in decoded.cookPhotoPaths.sorted(by: { $0.key < $1.key }) {
+                recipe.cookLog[index].photoData = photo(at: path)
             }
             recipes.append(recipe)
         }
         return BackupContents(recipes: recipes, unreadableFiles: unreadable)
     }
 
-    /// A recipe and the archive path of its photo, if it names one. Files
-    /// without recipi's extension (JSON-LD from another app) are read with
-    /// the same parser as web imports.
-    static func decodeRecipe(from json: Data) throws -> (BackupRecipe, imagePath: String?) {
+    struct DecodedRecipe {
+        var recipe: BackupRecipe
+        /// Archive path of the recipe's photo, if it names one.
+        var imagePath: String?
+        /// Archive paths of cook photos, by index into `recipe.cookLog`.
+        var cookPhotoPaths: [Int: String] = [:]
+    }
+
+    /// Files without recipi's extension (JSON-LD from another app) are read
+    /// with the same parser as web imports.
+    static func decodeRecipe(from json: Data) throws -> DecodedRecipe {
         let object: Any
         do {
             object = try JSONSerialization.jsonObject(with: json)
@@ -162,13 +186,14 @@ public enum RecipiBackup {
             } catch {
                 throw BackupError.notARecipe
             }
-            return (file.backupRecipe, file.image)
+            let decoded = file.decoded
+            return DecodedRecipe(recipe: decoded.recipe, imagePath: file.image, cookPhotoPaths: decoded.cookPhotoPaths)
         }
         guard let node = SchemaRecipeParser.findRecipe(in: object),
               let draft = SchemaRecipeParser.draft(from: node, sourceURL: nil) else {
             throw BackupError.notARecipe
         }
-        return (BackupRecipe(draft: draft), nil)
+        return DecodedRecipe(recipe: BackupRecipe(draft: draft))
     }
 
     // MARK: Helpers

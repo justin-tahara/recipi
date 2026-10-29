@@ -83,8 +83,10 @@ struct ZipArchiveTests {
     @Test func rejectsDuplicateNames() throws {
         var writer = ZipWriter()
         try writer.addFile(named: "a.txt", contents: Data())
+        let written = writer
         #expect(throws: ZipError.duplicateEntry("a.txt")) {
-            try writer.addFile(named: "a.txt", contents: Data())
+            var again = written
+            try again.addFile(named: "a.txt", contents: Data())
         }
     }
 }
@@ -124,6 +126,15 @@ private func sampleBackups() -> [BackupRecipe] {
     ]
     pasta.tags = ["Dinner", "Quick", "Vegetarian"]
     pasta.photoData = Data([0xFF, 0xD8, 0xFF, 0xE0] + (0..<500).map { UInt8(truncatingIfNeeded: $0) })
+    // Newest first, as snapshots list them.
+    pasta.cookLog = [
+        BackupCook(
+            cookedAt: Date(timeIntervalSince1970: 1_760_000_000.75),
+            note: "Doubled the garlic.",
+            photoData: Data([0xFF, 0xD8, 0xFF, 0xDB, 9, 8, 7])
+        ),
+        BackupCook(cookedAt: Date(timeIntervalSince1970: 1_755_000_000), note: ""),
+    ]
 
     var toast = BackupRecipe(
         id: UUID(uuidString: "0B9E8D7C-6A5B-4C3D-9E2F-1A0B9C8D7E6F")!,
@@ -153,6 +164,8 @@ struct BackupFormatTests {
         #expect(contents.unreadableFiles.isEmpty)
         #expect(contents.recipes == backups)
         #expect(contents.recipes[0].photoData == backups[0].photoData)
+        #expect(contents.recipes[0].cookLog == backups[0].cookLog)
+        #expect(contents.recipes[0].cookLog[0].photoData == Data([0xFF, 0xD8, 0xFF, 0xDB, 9, 8, 7]))
     }
 
     @Test func archiveLayout() throws {
@@ -161,6 +174,7 @@ struct BackupFormatTests {
         #expect(reader.entries.map(\.name) == [
             "manifest.json",
             "photos/5a1c7f3e-2b4d-4e6f-8a9b-0c1d2e3f4a5b.jpg",
+            "photos/5a1c7f3e-2b4d-4e6f-8a9b-0c1d2e3f4a5b-cook-1.jpg",
             "recipes/5a1c7f3e-2b4d-4e6f-8a9b-0c1d2e3f4a5b.json",
             "recipes/0b9e8d7c-6a5b-4c3d-9e2f-1a0b9c8d7e6f.json",
             "photos/c3d4e5f6-a7b8-4c9d-8e0f-112233445566.png",
@@ -198,11 +212,24 @@ struct BackupFormatTests {
         #expect(draft.prepTime == 600)
     }
 
-    @Test func singleSharedRecipeReadsBackWithoutPhoto() throws {
+    @Test func cookLogIsInTheExtension() throws {
+        let json = try RecipiBackup.jsonLD(for: sampleBackups()[0], photoPath: nil, cookPhotoPaths: ["photos/cook.jpg", nil])
+        let object = try #require(try JSONSerialization.jsonObject(with: json) as? [String: Any])
+        let recipi = try #require(object["recipi:extension"] as? [String: Any])
+        let cooks = try #require(recipi["cookLog"] as? [[String: Any]])
+        #expect(cooks.count == 2)
+        #expect(cooks[0]["cookedAt"] as? String == "2025-10-09T08:53:20.750Z")
+        #expect(cooks[0]["note"] as? String == "Doubled the garlic.")
+        #expect(cooks[0]["photo"] as? String == "photos/cook.jpg")
+        #expect(cooks[1]["photo"] == nil)
+    }
+
+    @Test func singleSharedRecipeLeavesOutPhotoAndCookHistory() throws {
         let pasta = sampleBackups()[0]
         let contents = try RecipiBackup.read(try RecipiBackup.jsonLD(for: pasta))
         var expected = pasta
         expected.photoData = nil
+        expected.cookLog = []
         #expect(contents.recipes == [expected])
     }
 
@@ -288,10 +315,14 @@ struct BackupFormatTests {
         try writer.addFile(named: "manifest.json", contents: Data(#"{"format":"recipi-backup","version":1}"#.utf8))
         try writer.addFile(named: "recipes/broken.json", contents: Data("{".utf8))
         let pasta = sampleBackups()[0]
-        try writer.addFile(named: "recipes/pasta.json", contents: try RecipiBackup.jsonLD(for: pasta, photoPath: "photos/gone.jpg"))
+        try writer.addFile(
+            named: "recipes/pasta.json",
+            contents: try RecipiBackup.jsonLD(for: pasta, photoPath: "photos/gone.jpg", cookPhotoPaths: [nil, nil])
+        )
         let contents = try RecipiBackup.read(try writer.archive())
         var expected = pasta
         expected.photoData = nil
+        expected.cookLog[0].photoData = nil
         #expect(contents.recipes == [expected])
         #expect(contents.unreadableFiles == ["recipes/broken.json", "photos/gone.jpg"])
     }
@@ -340,6 +371,12 @@ struct BackupStoreTests {
         let expectedPhotos = Dictionary(uniqueKeysWithValues: sampleBackups().map { ($0.id, $0.photoData) })
         #expect(photosByID == expectedPhotos)
         #expect(try destination.fetchCount(FetchDescriptor<Tag>()) == 4)
+
+        // Cook history comes back too, with lastCookedAt worked out again.
+        #expect(try destination.fetchCount(FetchDescriptor<CookLog>()) == 2)
+        let pasta = try #require(try destination.fetch(FetchDescriptor<Recipe>()).first { $0.title == "Pasta with tomato sauce" })
+        #expect(pasta.lastCookedAt == Date(timeIntervalSince1970: 1_760_000_000.75))
+        #expect(pasta.sortedCookLogs.first?.photoData == Data([0xFF, 0xD8, 0xFF, 0xDB, 9, 8, 7]))
     }
 
     @Test func restoringTwiceSkipsDuplicates() throws {

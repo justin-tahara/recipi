@@ -3,7 +3,8 @@ import Foundation
 // The JSON in each recipe file. The top level is a schema.org `Recipe`, so
 // other apps (and recipi's own web importer) can read it. The
 // `recipi:extension` object holds the exact values a restore needs:
-// section headings, times in seconds, notes, favorite, tags and dates.
+// section headings, times in seconds, notes, favorite, tags, dates and the
+// cook history.
 
 /// Written for each recipe in a backup.
 struct JSONLDRecipe: Encodable {
@@ -69,7 +70,8 @@ struct JSONLDRecipe: Encodable {
         }
     }
 
-    init(_ recipe: BackupRecipe, photoPath: String?) {
+    /// `cookPhotoPaths` lines up with `recipe.cookLog`.
+    init(_ recipe: BackupRecipe, photoPath: String?, cookPhotoPaths: [String?]) {
         identifier = recipe.id.uuidString.lowercased()
         name = recipe.title
         description = recipe.summary.isEmpty ? nil : recipe.summary
@@ -85,7 +87,7 @@ struct JSONLDRecipe: Encodable {
         keywords = recipe.tags.isEmpty ? nil : recipe.tags.joined(separator: ", ")
         dateCreated = Timestamp.string(from: recipe.createdAt)
         dateModified = Timestamp.string(from: recipe.updatedAt)
-        recipi = RecipiExtension(recipe)
+        recipi = RecipiExtension(recipe, cookPhotoPaths: cookPhotoPaths)
     }
 
     /// Consecutive steps under the same heading become one `HowToSection`.
@@ -110,8 +112,8 @@ struct JSONLDRecipe: Encodable {
 }
 
 /// recipi's own fields. Readers must ignore keys they don't know and treat
-/// a missing list as empty, so later versions can add keys (a cook log, for
-/// example) without changing the format version.
+/// a missing list as empty, so later versions can add keys without changing
+/// the format version. (`cookLog` was added this way.)
 struct RecipiExtension: Codable {
     var id: String
     var servings: Int?
@@ -126,6 +128,31 @@ struct RecipiExtension: Codable {
     var steps: [Line]
     var createdAt: String?
     var updatedAt: String?
+    var cookLog: [Cook]
+
+    struct Cook: Codable {
+        var cookedAt: String
+        var note: String
+        /// Archive path of the cook's photo, if it has one.
+        var photo: String?
+
+        enum CodingKeys: String, CodingKey {
+            case cookedAt, note, photo
+        }
+
+        init(cookedAt: String, note: String, photo: String?) {
+            self.cookedAt = cookedAt
+            self.note = note
+            self.photo = photo
+        }
+
+        init(from decoder: any Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            cookedAt = try container.decodeIfPresent(String.self, forKey: .cookedAt) ?? ""
+            note = try container.decodeIfPresent(String.self, forKey: .note) ?? ""
+            photo = try container.decodeIfPresent(String.self, forKey: .photo)
+        }
+    }
 
     struct Line: Codable {
         var text: String
@@ -151,10 +178,10 @@ struct RecipiExtension: Codable {
 
     enum CodingKeys: String, CodingKey {
         case id, servings, yieldText, prepTime, cookTime, totalTime
-        case notes, isFavorite, tags, ingredients, steps, createdAt, updatedAt
+        case notes, isFavorite, tags, ingredients, steps, createdAt, updatedAt, cookLog
     }
 
-    init(_ recipe: BackupRecipe) {
+    init(_ recipe: BackupRecipe, cookPhotoPaths: [String?]) {
         id = recipe.id.uuidString.lowercased()
         servings = recipe.servings
         yieldText = recipe.yieldText
@@ -168,6 +195,13 @@ struct RecipiExtension: Codable {
         steps = recipe.steps.map { Line($0) }
         createdAt = Timestamp.string(from: recipe.createdAt)
         updatedAt = Timestamp.string(from: recipe.updatedAt)
+        cookLog = recipe.cookLog.enumerated().map { index, cook in
+            Cook(
+                cookedAt: Timestamp.string(from: cook.cookedAt),
+                note: cook.note,
+                photo: index < cookPhotoPaths.count ? cookPhotoPaths[index] : nil
+            )
+        }
     }
 
     init(from decoder: any Decoder) throws {
@@ -185,6 +219,7 @@ struct RecipiExtension: Codable {
         steps = try container.decodeIfPresent([Line].self, forKey: .steps) ?? []
         createdAt = try container.decodeIfPresent(String.self, forKey: .createdAt)
         updatedAt = try container.decodeIfPresent(String.self, forKey: .updatedAt)
+        cookLog = try container.decodeIfPresent([Cook].self, forKey: .cookLog) ?? []
     }
 }
 
@@ -235,7 +270,9 @@ struct JSONLDRecipeFile: Decodable {
         }
     }
 
-    var backupRecipe: BackupRecipe {
+    /// The recipe, with the archive paths of its cooks' photos by index
+    /// into `cookLog`. A cook whose date can't be read is left out.
+    var decoded: (recipe: BackupRecipe, cookPhotoPaths: [Int: String]) {
         let id = UUID(uuidString: recipi.id) ?? identifier.flatMap(UUID.init(uuidString:)) ?? UUID()
         let now = Date.now
         let createdAt = (recipi.createdAt ?? dateCreated).flatMap(Timestamp.date(from:)) ?? now
@@ -254,6 +291,15 @@ struct JSONLDRecipeFile: Decodable {
         recipe.tags = recipi.tags
         recipe.ingredients = recipi.ingredients.map(\.draftLine)
         recipe.steps = recipi.steps.map(\.draftLine)
-        return recipe
+
+        var cookPhotoPaths: [Int: String] = [:]
+        for cook in recipi.cookLog {
+            guard let cookedAt = Timestamp.date(from: cook.cookedAt) else { continue }
+            if let photo = cook.photo {
+                cookPhotoPaths[recipe.cookLog.count] = photo
+            }
+            recipe.cookLog.append(BackupCook(cookedAt: cookedAt, note: cook.note))
+        }
+        return (recipe, cookPhotoPaths)
     }
 }

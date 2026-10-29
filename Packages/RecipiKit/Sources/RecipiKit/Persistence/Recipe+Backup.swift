@@ -16,7 +16,9 @@ extension Recipe {
 extension BackupRecipe {
     /// A snapshot of `recipe`. Doesn't change the recipe: one without an ID
     /// gets a new one here only. Use `snapshots(of:)` for a backup.
-    public init(_ recipe: Recipe, includingPhoto: Bool = true) {
+    /// `includingPhotos: false` leaves out the recipe's and the cooks'
+    /// photos, which saves reading them when they won't be written.
+    public init(_ recipe: Recipe, includingPhotos: Bool = true) {
         self.init(
             id: recipe.uuid ?? UUID(),
             title: recipe.title,
@@ -36,7 +38,10 @@ extension BackupRecipe {
         ingredients = recipe.sortedIngredients.map { RecipeDraft.Line($0.text, section: $0.section) }
         steps = recipe.sortedSteps.map { RecipeDraft.Line($0.text, section: $0.section) }
         tags = recipe.sortedTags.map(\.name)
-        photoData = includingPhoto ? recipe.photoData : nil
+        photoData = includingPhotos ? recipe.photoData : nil
+        cookLog = recipe.sortedCookLogs.map { log in
+            BackupCook(cookedAt: log.cookedAt, note: log.note, photoData: includingPhotos ? log.photoData : nil)
+        }
     }
 
     /// Snapshots for a backup. Gives a stable ID to each recipe that has
@@ -114,7 +119,7 @@ extension RecipiBackup {
 
 extension Recipe {
     /// Inserts a recipe from a backup exactly as it was saved: same ID,
-    /// dates, favorite and section headings.
+    /// dates, favorite, section headings and cook history.
     @discardableResult
     static func insert(from backup: BackupRecipe, into context: ModelContext) -> Recipe {
         let recipe = Recipe(title: backup.title)
@@ -149,6 +154,13 @@ extension Recipe {
             tags.append(tag)
         }
         recipe.tags = tags
+
+        let cooks = backup.cookLog.map { cook in
+            CookLog(cookedAt: cook.cookedAt, photoData: cook.photoData, note: cook.note)
+        }
+        for cook in cooks { context.insert(cook) }
+        recipe.cookLogs = cooks
+        recipe.refreshLastCooked()
         return recipe
     }
 }

@@ -27,11 +27,27 @@ public struct BackupRecipe: Sendable, Equatable, Identifiable {
     public var tags: [String] = []
     /// The photo's bytes exactly as recipi stored them (usually JPEG).
     public var photoData: Data?
+    /// Every time it was cooked, newest first.
+    public var cookLog: [BackupCook] = []
 
     public init(id: UUID = UUID(), title: String, createdAt: Date = .now, updatedAt: Date = .now) {
         self.id = id
         self.title = title
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+    }
+}
+
+/// One entry of a recipe's cook history (`CookLog`).
+public struct BackupCook: Sendable, Equatable {
+    public var cookedAt: Date
+    public var note: String
+    /// The cook's photo bytes as stored (a downscaled JPEG).
+    public var photoData: Data?
+
+    public init(cookedAt: Date, note: String = "", photoData: Data? = nil) {
+        self.cookedAt = cookedAt
+        self.note = note
+        self.photoData = photoData
     }
 }
