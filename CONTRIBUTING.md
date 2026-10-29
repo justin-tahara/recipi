@@ -1,7 +1,7 @@
 # Contributing to recipi
 
-Thanks for helping. recipi is a free, open-source recipe app for iPhone and
-iPad, and it stays small on purpose: your recipes, on your device, with no
+Thanks for helping. recipi is a free, open-source recipe app for iPhone
+(iPad comes later), and it stays small on purpose: your recipes, on your device, with no
 account and no server.
 
 ## Getting set up

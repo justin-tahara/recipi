@@ -5,7 +5,7 @@
   </picture>
 </h1>
 
-A free, open-source recipe manager for iPhone and iPad. Save recipes from any
+A free, open-source recipe manager for iPhone. Save recipes from any
 website, keep them in one searchable library, and cook from them with a
 distraction-free cooking mode. Your recipes sync through your own iCloud
 account; there is no server, no account to create, and no subscription.
