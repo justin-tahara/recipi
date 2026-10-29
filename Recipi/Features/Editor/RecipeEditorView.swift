@@ -239,7 +239,7 @@ struct RecipeEditorView: View {
 
     private var tagsSection: some View {
         Section("Tags") {
-            TagEditor(draft: $draft, existing: libraryTagNames, focus: $focus)
+            TagEditor(draft: $draft, existing: libraryTagNames, colors: libraryTagColors, focus: $focus)
         }
         .listRowBackground(Theme.Colors.elevated)
     }
@@ -479,6 +479,10 @@ struct RecipeEditorView: View {
     // MARK: - Helpers
 
     /// Tags used on at least one recipe, for suggestions.
+    private var libraryTagColors: [String: TagColor] {
+        Dictionary(libraryTags.map { ($0.name.lowercased(), $0.color) }, uniquingKeysWith: { first, _ in first })
+    }
+
     private var libraryTagNames: [String] {
         libraryTags.filter { !($0.recipes ?? []).isEmpty }.map(\.name)
     }

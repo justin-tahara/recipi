@@ -8,6 +8,9 @@ struct TagEditor: View {
     @Binding var draft: RecipeEditDraft
     /// Names of tags already in the library.
     let existing: [String]
+    /// Colors of existing tags by lowercased name, for ones a person
+    /// recolored. Other tags use the color their name hashes to.
+    var colors: [String: TagColor] = [:]
     var focus: FocusState<EditorField?>.Binding
 
     @State private var newTag = ""
@@ -85,7 +88,7 @@ struct TagEditor: View {
     }
 
     private func removablePill(_ name: String) -> some View {
-        let color = TagColor.forName(name)
+        let color = colors[name.lowercased()] ?? TagColor.forName(name)
         return Button {
             withMotion(Motion.snappy, reduceMotion: reduceMotion) {
                 draft.removeTag(name)

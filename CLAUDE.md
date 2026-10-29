@@ -55,6 +55,12 @@ row in `FixtureCorpusTests.swift` before changing the parser. Name fixtures
 after the markup pattern they show. The nightly live check
 (`.github/workflows/live-import-check.yml`) imports `scripts/live-check-urls.txt`.
 
+Saving an import (`Recipe.insert(from:)`) runs `AutoTagger`: categories,
+cuisines and keywords are mapped onto `TagVocabulary` (synonyms in
+`TagVocabulary+Terms.swift`; a test rejects a word in two terms), traits come
+from nutrition and times, and other keywords are capped. Parsers keep the
+page's raw values in `RecipeDraft.tags`.
+
 ## Build and test
 
 ```sh
