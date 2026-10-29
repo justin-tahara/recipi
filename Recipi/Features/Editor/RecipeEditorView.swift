@@ -29,8 +29,11 @@ struct RecipeEditorView: View {
                 }
 
                 Section("Photo") {
+                    // PhotosPicker's label closure is Sendable, so read the
+                    // main-actor model here rather than inside it.
+                    let photoLabel = recipe.photoData == nil ? "Add photo" : "Change photo"
                     PhotosPicker(selection: $photoItem, matching: .images) {
-                        Label(recipe.photoData == nil ? "Add photo" : "Change photo", systemImage: "photo")
+                        Label(photoLabel, systemImage: "photo")
                     }
                 }
 
