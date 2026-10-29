@@ -9,9 +9,13 @@ let package = Package(
     ],
     products: [
         .library(name: "RecipiKit", targets: ["RecipiKit"]),
+        .library(name: "RecipiDesign", targets: ["RecipiDesign"]),
     ],
     targets: [
         .target(name: "RecipiKit"),
-        .testTarget(name: "RecipiKitTests", dependencies: ["RecipiKit"]),
+        // Colors, type, motion and small components shared by the app and
+        // the share extension. SwiftUI only; no models or app logic.
+        .target(name: "RecipiDesign"),
+        .testTarget(name: "RecipiKitTests", dependencies: ["RecipiKit", "RecipiDesign"]),
     ]
 )

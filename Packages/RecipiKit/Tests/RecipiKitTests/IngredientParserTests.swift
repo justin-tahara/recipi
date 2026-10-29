@@ -47,6 +47,20 @@ struct IngredientParserTests {
     @Test func scalingByOneReturnsTheOriginal() {
         #expect(IngredientParser.parse("1 1/2 cups milk").scaled(by: 1) == "1 1/2 cups milk")
     }
+
+    @Test func splitsTheAmountFromTheRest() {
+        let asWritten = IngredientParser.parse("1 1/2 cups milk").scaledParts(by: 1)
+        #expect(asWritten.amount == "1 1/2")
+        #expect(asWritten.rest == " cups milk")
+
+        let doubled = IngredientParser.parse("2-3 cloves garlic").scaledParts(by: 2)
+        #expect(doubled.amount == "4–6")
+        #expect(doubled.rest == " cloves garlic")
+
+        let noAmount = IngredientParser.parse("Salt to taste").scaledParts(by: 2)
+        #expect(noAmount.amount == "")
+        #expect(noAmount.rest == "Salt to taste")
+    }
 }
 
 struct QuantityFormatterTests {

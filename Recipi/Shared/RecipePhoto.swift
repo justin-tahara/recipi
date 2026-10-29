@@ -1,8 +1,12 @@
+import RecipiDesign
 import SwiftUI
 import UIKit
 
+/// A recipe's photo, or a soft colored tile when it has none. The tile's
+/// color comes from the title, so each recipe keeps its own.
 struct RecipePhoto: View {
     let data: Data?
+    var title: String = ""
 
     var body: some View {
         if let data, let image = UIImage(data: data) {
@@ -10,11 +14,13 @@ struct RecipePhoto: View {
                 .resizable()
                 .scaledToFill()
         } else {
+            let color = TagColor.forName(title)
             Rectangle()
-                .fill(.quaternary)
+                .fill(color.background)
                 .overlay {
                     Image(systemName: "fork.knife")
-                        .foregroundStyle(.secondary)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(color.foreground)
                 }
         }
     }

@@ -1,9 +1,11 @@
+import RecipiDesign
 import RecipiKit
 import SwiftData
 import SwiftUI
 
 struct GroceryListView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Query(sort: \GroceryItem.createdAt) private var items: [GroceryItem]
 
     @State private var newItemText = ""
@@ -14,18 +16,50 @@ struct GroceryListView: View {
         NavigationStack {
             List {
                 Section {
-                    TextField("Add an item", text: $newItemText)
-                        .onSubmit(addItem)
-                        .submitLabel(.done)
+                    addItemRow
                 }
 
-                Section {
-                    ForEach(items) { item in
-                        GroceryRow(item: item)
+                if items.isEmpty {
+                    Section {
+                        EmptyStateView(
+                            symbol: "cart",
+                            title: "Nothing to buy",
+                            message: "Add items here, or add a recipe's ingredients from its page.",
+                            color: .green
+                        )
+                        .padding(.top, Theme.Spacing.xl)
+                        .listRowBackground(Theme.Colors.background)
+                        .listRowSeparator(.hidden)
                     }
-                    .onDelete(perform: delete)
+                }
+
+                if !uncheckedItems.isEmpty {
+                    Section {
+                        ForEach(uncheckedItems) { item in
+                            GroceryRow(item: item)
+                        }
+                        .onDelete { offsets in delete(offsets, from: uncheckedItems) }
+                    } header: {
+                        sectionHeader("To buy", count: uncheckedItems.count)
+                    }
+                    .listSectionSeparator(.hidden)
+                }
+
+                if !checkedItems.isEmpty {
+                    Section {
+                        ForEach(checkedItems) { item in
+                            GroceryRow(item: item)
+                        }
+                        .onDelete { offsets in delete(offsets, from: checkedItems) }
+                    } header: {
+                        sectionHeader("In the cart", count: checkedItems.count)
+                    }
+                    .listSectionSeparator(.hidden)
                 }
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(Theme.Colors.background)
             .navigationTitle("Groceries")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -36,7 +70,7 @@ struct GroceryListView: View {
                         .disabled(uncheckedItems.isEmpty || isSendingToReminders)
 
                         Button("Clear checked items", systemImage: "trash", role: .destructive, action: clearChecked)
-                            .disabled(!items.contains(where: \.isChecked))
+                            .disabled(checkedItems.isEmpty)
                     } label: {
                         Label("More", systemImage: "ellipsis.circle")
                     }
@@ -53,26 +87,63 @@ struct GroceryListView: View {
         }
     }
 
+    private var addItemRow: some View {
+        HStack(spacing: Theme.Spacing.sm) {
+            Image(systemName: "plus")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(Theme.Colors.accent)
+                .frame(width: 22)
+                .accessibilityHidden(true)
+            TextField("Add an item", text: $newItemText)
+                .foregroundStyle(Theme.Colors.textPrimary)
+                .onSubmit(addItem)
+                .submitLabel(.done)
+        }
+        .listRowBackground(Theme.Colors.background)
+        .listRowSeparator(.hidden)
+    }
+
+    private func sectionHeader(_ title: String, count: Int) -> some View {
+        HStack(spacing: 6) {
+            Text(title)
+                .foregroundStyle(Theme.Colors.textSecondary)
+            Text("\(count)")
+                .foregroundStyle(Theme.Colors.textTertiary)
+                .contentTransition(.numericText(value: Double(count)))
+        }
+        .font(Theme.Fonts.eyebrow)
+        .textCase(.uppercase)
+        .tracking(0.8)
+    }
+
     private var uncheckedItems: [GroceryItem] {
         items.filter { !$0.isChecked }
+    }
+
+    private var checkedItems: [GroceryItem] {
+        items.filter(\.isChecked)
     }
 
     private func addItem() {
         let text = newItemText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
-        modelContext.insert(GroceryItem(text: text))
+        withMotion(Motion.snappy, reduceMotion: reduceMotion) {
+            modelContext.insert(GroceryItem(text: text))
+        }
         newItemText = ""
     }
 
-    private func delete(at offsets: IndexSet) {
+    private func delete(_ offsets: IndexSet, from list: [GroceryItem]) {
         for index in offsets {
-            modelContext.delete(items[index])
+            modelContext.delete(list[index])
         }
     }
 
     private func clearChecked() {
-        for item in items where item.isChecked {
-            modelContext.delete(item)
+        withMotion(Motion.snappy, reduceMotion: reduceMotion) {
+            for item in items where item.isChecked {
+                modelContext.delete(item)
+            }
         }
     }
 
@@ -89,27 +160,35 @@ struct GroceryListView: View {
     }
 }
 
+/// Ticking an item moves it down to "In the cart".
 private struct GroceryRow: View {
     @Bindable var item: GroceryItem
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Button {
-            item.isChecked.toggle()
+            withMotion(Motion.snappy, reduceMotion: reduceMotion) {
+                item.isChecked.toggle()
+            }
         } label: {
-            HStack {
-                Image(systemName: item.isChecked ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(item.isChecked ? Color.accentColor : Color.secondary)
-                VStack(alignment: .leading) {
+            HStack(spacing: Theme.Spacing.sm) {
+                Checkbox(isOn: item.isChecked)
+                VStack(alignment: .leading, spacing: 4) {
                     Text(item.text)
-                        .strikethrough(item.isChecked)
-                    if let recipeTitle = item.recipeTitle {
-                        Text(recipeTitle)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        .strikethrough(item.isChecked, color: Theme.Colors.textTertiary)
+                        .foregroundStyle(item.isChecked ? Theme.Colors.textTertiary : Theme.Colors.textPrimary)
+                    if let recipeTitle = item.recipeTitle, !recipeTitle.isEmpty {
+                        TagPill(recipeTitle)
                     }
                 }
+                Spacer(minLength: 0)
             }
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .sensoryFeedback(.selection, trigger: item.isChecked)
+        .listRowBackground(Theme.Colors.background)
+        .listRowSeparatorTint(Theme.Colors.divider)
+        .accessibilityAddTraits(item.isChecked ? .isSelected : [])
     }
 }
