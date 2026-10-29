@@ -20,6 +20,7 @@ struct SettingsView: View {
                 Group {
                     measurementsSection
                     syncSection
+                    TranslationSettingsSection(preferences: preferences)
                     // Its own view, in BackupSection.swift.
                     BackupSection()
                     aboutSection

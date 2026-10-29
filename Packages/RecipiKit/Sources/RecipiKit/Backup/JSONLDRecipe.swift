@@ -129,6 +129,16 @@ struct RecipiExtension: Codable {
     var createdAt: String?
     var updatedAt: String?
     var cookLog: [Cook]
+    var originalLanguage: String?
+    var translatedLanguage: String?
+    var keepsOriginalLanguage: Bool
+    var translation: Translation?
+
+    /// The text before and after translating (`Recipe.translationRecord`).
+    struct Translation: Codable {
+        var original: RecipeText
+        var translated: RecipeText
+    }
 
     struct Cook: Codable {
         var cookedAt: String
@@ -179,6 +189,7 @@ struct RecipiExtension: Codable {
     enum CodingKeys: String, CodingKey {
         case id, servings, yieldText, prepTime, cookTime, totalTime
         case notes, isFavorite, tags, ingredients, steps, createdAt, updatedAt, cookLog
+        case originalLanguage, translatedLanguage, keepsOriginalLanguage, translation
     }
 
     init(_ recipe: BackupRecipe, cookPhotoPaths: [String?]) {
@@ -202,6 +213,10 @@ struct RecipiExtension: Codable {
                 photo: index < cookPhotoPaths.count ? cookPhotoPaths[index] : nil
             )
         }
+        originalLanguage = recipe.originalLanguage
+        translatedLanguage = recipe.translatedLanguage
+        keepsOriginalLanguage = recipe.keepsOriginalLanguage
+        translation = recipe.translation.map { Translation(original: $0.original, translated: $0.translated) }
     }
 
     init(from decoder: any Decoder) throws {
@@ -220,6 +235,10 @@ struct RecipiExtension: Codable {
         createdAt = try container.decodeIfPresent(String.self, forKey: .createdAt)
         updatedAt = try container.decodeIfPresent(String.self, forKey: .updatedAt)
         cookLog = try container.decodeIfPresent([Cook].self, forKey: .cookLog) ?? []
+        originalLanguage = try container.decodeIfPresent(String.self, forKey: .originalLanguage)
+        translatedLanguage = try container.decodeIfPresent(String.self, forKey: .translatedLanguage)
+        keepsOriginalLanguage = try container.decodeIfPresent(Bool.self, forKey: .keepsOriginalLanguage) ?? false
+        translation = try container.decodeIfPresent(Translation.self, forKey: .translation)
     }
 }
 
@@ -291,6 +310,10 @@ struct JSONLDRecipeFile: Decodable {
         recipe.tags = recipi.tags
         recipe.ingredients = recipi.ingredients.map(\.draftLine)
         recipe.steps = recipi.steps.map(\.draftLine)
+        recipe.originalLanguage = recipi.originalLanguage
+        recipe.translatedLanguage = recipi.translatedLanguage
+        recipe.keepsOriginalLanguage = recipi.keepsOriginalLanguage
+        recipe.translation = recipi.translation.map { BackupTranslation(original: $0.original, translated: $0.translated) }
 
         var cookPhotoPaths: [Int: String] = [:]
         for cook in recipi.cookLog {

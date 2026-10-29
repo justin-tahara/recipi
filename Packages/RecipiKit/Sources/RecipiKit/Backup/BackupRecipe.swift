@@ -30,11 +30,31 @@ public struct BackupRecipe: Sendable, Equatable, Identifiable {
     /// Every time it was cooked, newest first.
     public var cookLog: [BackupCook] = []
 
+    // Translation (see Recipe+Translation.swift). The text above is what
+    // the recipe shows now, which may be a translation.
+    public var originalLanguage: String?
+    public var translatedLanguage: String?
+    public var keepsOriginalLanguage: Bool = false
+    /// The text before and after translating, kept while a translation is
+    /// shown so "Show original" still works after a restore.
+    public var translation: BackupTranslation?
+
     public init(id: UUID = UUID(), title: String, createdAt: Date = .now, updatedAt: Date = .now) {
         self.id = id
         self.title = title
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+    }
+}
+
+/// What `Recipe.translationRecord` holds, as plain values.
+public struct BackupTranslation: Sendable, Equatable {
+    public var original: RecipeText
+    public var translated: RecipeText
+
+    public init(original: RecipeText, translated: RecipeText) {
+        self.original = original
+        self.translated = translated
     }
 }
 

@@ -135,6 +135,23 @@ private func sampleBackups() -> [BackupRecipe] {
         ),
         BackupCook(cookedAt: Date(timeIntervalSince1970: 1_755_000_000), note: ""),
     ]
+    // Shown in English, translated from French.
+    pasta.originalLanguage = "fr"
+    pasta.translatedLanguage = "en"
+    pasta.translation = BackupTranslation(
+        original: RecipeText(
+            title: "Pâtes à la tomate",
+            summary: "Des pâtes pour le soir.",
+            ingredients: [.init("400 g de spaghetti"), .init("2 c. à s. d'huile d'olive", section: "Pour la sauce")],
+            steps: [.init("Chauffer l'huile.", section: "La sauce")]
+        ),
+        translated: RecipeText(
+            title: pasta.title,
+            summary: pasta.summary,
+            ingredients: pasta.ingredients.map { RecipeText.Line($0.text, section: $0.section) },
+            steps: pasta.steps.map { RecipeText.Line($0.text, section: $0.section) }
+        )
+    )
 
     var toast = BackupRecipe(
         id: UUID(uuidString: "0B9E8D7C-6A5B-4C3D-9E2F-1A0B9C8D7E6F")!,
@@ -153,6 +170,8 @@ private func sampleBackups() -> [BackupRecipe] {
     onigiri.ingredients = [.init("2 cups cooked rice"), .init("1 umeboshi")]
     onigiri.tags = ["Lunch"]
     onigiri.photoData = Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3])
+    onigiri.originalLanguage = "ja"
+    onigiri.keepsOriginalLanguage = true
     return [pasta, toast, onigiri]
 }
 
@@ -230,6 +249,9 @@ struct BackupFormatTests {
         var expected = pasta
         expected.photoData = nil
         expected.cookLog = []
+        expected.originalLanguage = nil
+        expected.translatedLanguage = nil
+        expected.translation = nil
         #expect(contents.recipes == [expected])
     }
 
@@ -340,9 +362,9 @@ struct BackupFormatTests {
 /// Export from one in-memory store and restore into another.
 @Suite(.serialized)
 struct BackupStoreTests {
-    private func insertSamples(into context: ModelContext) {
+    private func insertSamples(into context: ModelContext) throws {
         for backup in sampleBackups() {
-            Recipe.insert(from: backup, into: context)
+            try Recipe.insert(from: backup, into: context)
         }
     }
 
@@ -353,7 +375,7 @@ struct BackupStoreTests {
 
     @Test func exportThenRestoreKeepsEveryFieldAndPhoto() throws {
         let source = ModelContext(try RecipiStore.makeContainer(inMemory: true))
-        insertSamples(into: source)
+        try insertSamples(into: source)
         try source.save()
         let exported = try snapshotsSortedByTitle(source)
         #expect(exported.count == 3)
@@ -377,6 +399,14 @@ struct BackupStoreTests {
         let pasta = try #require(try destination.fetch(FetchDescriptor<Recipe>()).first { $0.title == "Pasta with tomato sauce" })
         #expect(pasta.lastCookedAt == Date(timeIntervalSince1970: 1_760_000_000.75))
         #expect(pasta.sortedCookLogs.first?.photoData == Data([0xFF, 0xD8, 0xFF, 0xDB, 9, 8, 7]))
+
+        // The translation comes back as one "Show original" can undo.
+        #expect(pasta.isTranslated)
+        #expect(!pasta.hasEditedTranslation)
+        #expect(pasta.translationSource.title == "Pâtes à la tomate")
+        pasta.showOriginal(in: destination)
+        #expect(pasta.title == "Pâtes à la tomate")
+        #expect(pasta.sortedSteps.map(\.section) == ["La sauce"])
     }
 
     @Test func restoringTwiceSkipsDuplicates() throws {

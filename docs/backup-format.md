@@ -161,6 +161,14 @@ what was saved.
 | `steps` | [line] | In order, same shape. |
 | `createdAt`, `updatedAt` | string | ISO 8601 in UTC with milliseconds. |
 | `cookLog` | [cook] | Every time you cooked it, newest first. A cook is `{ "cookedAt", "note", "photo"? }`, where `photo` is an archive path. |
+| `originalLanguage` | string | The language the recipe is written in (BCP 47, like `fr`; `und` if it couldn't be told). |
+| `translatedLanguage` | string | The language it's shown in, when the text is a translation. |
+| `keepsOriginalLanguage` | bool | You chose to read it in its own language, so it isn't translated again. |
+| `translation` | object | While a translation is shown: `{ "original", "translated" }`, each `{ "title", "summary", "ingredients", "steps" }` with lines as above. It lets Show original work after a restore. |
+
+The recipe's text, both at the top level and in `ingredients` and `steps`,
+is what it shows now, so a translated recipe's file holds the translation
+and `translation.original` holds the text it came from.
 
 Times are kept to the millisecond.
 
@@ -192,7 +200,8 @@ Times are kept to the millisecond.
 
 The **Share recipe file** item in a recipe's menu sends that recipe as a
 single JSON file in the same shape as a backup's recipe file, without
-`image` and with an empty cook log, since those are yours. Other recipe
+`image`, with an empty cook log, and without the translation keys: it
+carries the text as shown, and the receiving app tells its language again. Other recipe
 apps can import it, and Settings > Backup > Restore from backup accepts it.
 
 [recipe]: https://schema.org/Recipe

@@ -42,6 +42,14 @@ extension BackupRecipe {
         cookLog = recipe.sortedCookLogs.map { log in
             BackupCook(cookedAt: log.cookedAt, note: log.note, photoData: includingPhotos ? log.photoData : nil)
         }
+        originalLanguage = recipe.originalLanguage
+        translatedLanguage = recipe.translatedLanguage
+        keepsOriginalLanguage = recipe.keepsOriginalLanguage
+        // A record that can't be read counts as none, as it does for
+        // "Show original" itself.
+        translation = recipe.translationRecord
+            .flatMap { try? JSONDecoder().decode(RecipeTranslationRecord.self, from: $0) }
+            .map { BackupTranslation(original: $0.original, translated: $0.translated) }
     }
 
     /// Snapshots for a backup. Gives a stable ID to each recipe that has
@@ -94,7 +102,7 @@ extension RecipiBackup {
                 summary.skippedDuplicates += 1
                 continue
             }
-            Recipe.insert(from: backup, into: context)
+            try Recipe.insert(from: backup, into: context)
             knownIDs.insert(backup.id)
             if let source { knownSources.insert(source) }
             summary.restored += 1
@@ -123,9 +131,9 @@ extension RecipiBackup {
 
 extension Recipe {
     /// Inserts a recipe from a backup exactly as it was saved: same ID,
-    /// dates, favorite, section headings and cook history.
+    /// dates, favorite, section headings, cook history and translation.
     @discardableResult
-    static func insert(from backup: BackupRecipe, into context: ModelContext) -> Recipe {
+    static func insert(from backup: BackupRecipe, into context: ModelContext) throws -> Recipe {
         let recipe = Recipe(title: backup.title)
         // Insert before setting relationships, which SwiftData expects.
         context.insert(recipe)
@@ -165,6 +173,14 @@ extension Recipe {
         for cook in cooks { context.insert(cook) }
         recipe.cookLogs = cooks
         recipe.refreshLastCooked()
+
+        recipe.originalLanguage = backup.originalLanguage
+        recipe.translatedLanguage = backup.translatedLanguage
+        recipe.keepsOriginalLanguage = backup.keepsOriginalLanguage
+        if let translation = backup.translation {
+            let record = RecipeTranslationRecord(original: translation.original, translated: translation.translated)
+            recipe.translationRecord = try JSONEncoder().encode(record)
+        }
         return recipe
     }
 }

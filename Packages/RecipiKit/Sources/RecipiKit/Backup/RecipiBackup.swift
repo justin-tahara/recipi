@@ -64,6 +64,12 @@ public enum RecipiBackup {
     public static func jsonLD(for recipe: BackupRecipe) throws -> Data {
         var shared = recipe
         shared.cookLog = []
+        // The text sent is the text shown, so the receiver starts from that
+        // and tells its language again.
+        shared.originalLanguage = nil
+        shared.translation = nil
+        shared.translatedLanguage = nil
+        shared.keepsOriginalLanguage = false
         return try jsonLD(for: shared, photoPath: nil, cookPhotoPaths: [])
     }
 

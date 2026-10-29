@@ -55,6 +55,22 @@ public final class Recipe {
     /// `ensureUUID()`). Not unique; CloudKit doesn't allow that.
     public var uuid: UUID?
 
+    // MARK: Translation (see Recipe+Translation.swift)
+
+    /// The language the recipe is written in, as a BCP 47 code like "fr",
+    /// told from its text. `RecipeLanguage.undetermined` when it couldn't
+    /// be told; nil until it's been checked.
+    public var originalLanguage: String?
+    /// The language the recipe is shown in when its text is a translation;
+    /// nil while it shows the original.
+    public var translatedLanguage: String?
+    /// The original and translated text, JSON-encoded, kept while a
+    /// translation is shown so "Show original" can bring the original back.
+    public var translationRecord: Data?
+    /// True once the person chose to read this recipe in its own language,
+    /// so it isn't translated automatically again.
+    public var keepsOriginalLanguage: Bool = false
+
     public init(title: String = "") {
         self.title = title
         self.uuid = UUID()
