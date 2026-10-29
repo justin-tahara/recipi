@@ -37,6 +37,9 @@ targets:
       path: Recipi/Info.plist
       properties:
         CFBundleDisplayName: recipi
+        # Only the system's HTTPS, so App Store uploads skip the export
+        # compliance question.
+        ITSAppUsesNonExemptEncryption: false
         UILaunchScreen: {}
         UIBackgroundModes: [remote-notification]
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
@@ -49,7 +52,7 @@ targets:
         com.apple.security.application-groups: [$(RECIPI_APP_GROUP_ID)]
         com.apple.developer.icloud-services: [CloudKit]
         com.apple.developer.icloud-container-identifiers: [$(RECIPI_CLOUDKIT_CONTAINER_ID)]
-        aps-environment: development
+        aps-environment: $(RECIPI_APS_ENVIRONMENT)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(RECIPI_BUNDLE_ID)
