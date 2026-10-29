@@ -64,6 +64,10 @@ final class AccessibilityAuditTests: XCTestCase {
         let settings = app.navigationBars["Settings"]
         XCTAssertTrue(settings.waitForExistence(timeout: timeout))
         try audit(app, screen: "Settings")
+        // DIAGNOSTIC (temporary)
+        print("DIAG-TREE Settings\n\(app.debugDescription)\nDIAG-END")
+        app.swipeUp()
+        try audit(app, screen: "Settings (scrolled)")
         settings.buttons["Done"].tap()
         XCTAssertTrue(settings.waitForNonExistence(timeout: timeout))
 
@@ -89,6 +93,19 @@ final class AccessibilityAuditTests: XCTestCase {
         app.tabBars.buttons["Groceries"].tap()
         XCTAssertTrue(app.buttons.matching(identifier: "grocery.item").firstMatch.waitForExistence(timeout: timeout))
         try audit(app, screen: "Groceries")
+        // DIAGNOSTIC (temporary)
+        print("DIAG-TREE Groceries\n\(app.debugDescription)\nDIAG-END")
+        app.buttons.matching(identifier: "grocery.item").firstMatch.tap()
+        sleep(1)
+        try audit(app, screen: "Groceries (one checked)")
+        let field = app.textFields["Add an item"].firstMatch
+        if field.exists {
+            field.tap()
+            field.typeText("Salt\n")
+            sleep(1)
+            try audit(app, screen: "Groceries (one added by hand)")
+            print("DIAG-TREE Groceries2\n\(app.debugDescription)\nDIAG-END")
+        }
     }
 
     @MainActor
