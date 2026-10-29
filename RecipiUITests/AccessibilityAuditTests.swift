@@ -125,6 +125,10 @@ final class AccessibilityAuditTests: XCTestCase {
     /// false positive (see `isKnownFalsePositive`).
     @MainActor
     private func audit(_ app: XCUIApplication, screen: String) throws {
+        // Let fades and sheet dismissals finish first: the contrast check
+        // samples the screen's pixels, so text caught mid-fade reads as
+        // too faint (seen on "No recipes yet" and the filter row at AX5).
+        Thread.sleep(forTimeInterval: 1.5)
         try app.performAccessibilityAudit(for: auditTypes) { issue in
             if self.isKnownFinding(issue, on: screen) {
                 self.knownIssues.append("\(screen): \(Self.describe(issue))")
