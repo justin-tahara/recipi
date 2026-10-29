@@ -19,6 +19,7 @@ struct SettingsView: View {
             Form {
                 Group {
                     measurementsSection
+                    tagsSection
                     syncSection
                     aboutSection
                 }
@@ -44,6 +45,21 @@ struct SettingsView: View {
     }
 
     // MARK: Measurements
+
+    // MARK: Tags
+
+    private var tagsSection: some View {
+        Section {
+            NavigationLink {
+                TagManagerView()
+            } label: {
+                Label("Tags", systemImage: "tag")
+                    .foregroundStyle(Theme.Colors.textPrimary)
+            }
+        } footer: {
+            Text("Rename, merge, recolor or delete tags. recipi tags imported recipes by cuisine, meal, diet and traits like quick or high protein.")
+        }
+    }
 
     private var measurementsSection: some View {
         Section {

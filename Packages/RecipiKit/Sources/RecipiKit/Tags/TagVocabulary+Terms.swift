@@ -28,10 +28,13 @@ extension TagVocabulary {
 
         VocabularyTerm("Italian", .cuisine, [
             "italiano", "italiana", "italien", "italienne", "italienisch", "italienische", "italiaans", "italia",
-            "italy", "イタリアン", "イタリア料理", "意大利菜",
+            "italy", 
+            // Regional cuisines read as the country's.
+            "romana", "romano", "siciliana", "siciliano", "toscana", "toscano", "napoletana", "napoletano", "pugliese",
+            "ligure", "emiliana", "veneta", "sarda", "calabrese", "tuscan", "sicilian", "neapolitan", "イタリアン", "イタリア料理", "意大利菜",
         ]),
         VocabularyTerm("French", .cuisine, [
-            "france", "francais", "francaise", "franzosisch", "franzosische", "francese", "frances", "francesa",
+            "france", "provencal", "provencale", "lyonnaise", "bretonne", "alsacienne", "normande", "basque", "francais", "francaise", "franzosisch", "franzosische", "francese", "frances", "francesa",
             "フレンチ", "フランス料理", "法国菜",
         ]),
         VocabularyTerm("Spanish", .cuisine, [
@@ -46,7 +49,7 @@ extension TagVocabulary {
             "イギリス料理",
         ]),
         VocabularyTerm("German", .cuisine, [
-            "germany", "allemand", "allemande", "deutsch", "deutsche", "tedesco", "tedesca", "aleman", "alemana",
+            "germany", "schwabisch", "bayerisch", "bavarian", "swabian", "allemand", "allemande", "deutsch", "deutsche", "tedesco", "tedesca", "aleman", "alemana",
             "ドイツ料理",
         ]),
         VocabularyTerm("Middle Eastern", .cuisine, [
@@ -62,7 +65,7 @@ extension TagVocabulary {
             "한식", "한국 요리", "韩国菜",
         ]),
         VocabularyTerm("Chinese", .cuisine, [
-            "china", "chinois", "chinoise", "chinesisch", "chinesische", "cinese", "chino", "中華",
+            "china", "sichuan", "szechuan", "cantonese", "hunan", "shanghainese", "chinois", "chinoise", "chinesisch", "chinesische", "cinese", "chino", "中華",
             "中華料理", "中国料理", "中餐", "中式", "中国菜",
         ]),
         VocabularyTerm("Thai", .cuisine, [
@@ -77,17 +80,17 @@ extension TagVocabulary {
             "filipina", "philippine", "philippines", "philippin", "philippinisch", "フィリピン料理",
         ]),
         VocabularyTerm("Indian", .cuisine, [
-            "india", "indien", "indienne", "indisch", "indische", "indiano", "インド料理", "印度菜",
+            "india", "punjabi", "south indian", "north indian", "goan", "keralan", "indien", "indienne", "indisch", "indische", "indiano", "インド料理", "印度菜",
         ]),
         VocabularyTerm("Mexican", .cuisine, [
-            "mexico", "mexicain", "mexicaine", "mexikanisch", "mexikanische", "messicano", "messicana", "mexicano",
+            "mexico", "oaxacan", "yucatecan", "mexicain", "mexicaine", "mexikanisch", "mexikanische", "messicano", "messicana", "mexicano",
             "mexicana", "tex mex", "texmex", "メキシコ料理", "墨西哥菜",
         ]),
         VocabularyTerm("Caribbean", .cuisine, [
             "caribeen", "caribeenne", "antillais", "karibisch", "caraibico", "caribeno", "caribena", "jamaican",
         ]),
         VocabularyTerm("American", .cuisine, [
-            "usa", "americain", "americaine", "amerikanisch", "amerikanische", "americano", "americana",
+            "usa", "cajun", "creole", "southern", "americain", "americaine", "amerikanisch", "amerikanische", "americano", "americana",
             "estadounidense", "アメリカ料理", "美式",
         ]),
     ]
@@ -103,7 +106,7 @@ extension TagVocabulary {
             "lunches", "dejeuner", "pranzo", "almuerzo", "mittagessen", "昼食", "昼ごはん", "昼ご飯", "ランチ", "午餐",
         ]),
         VocabularyTerm("Dinner", .meal, [
-            "dinners", "supper", "main", "mains", "main course", "main courses", "main dish", "main dishes",
+            "dinners", "primi piatti", "primo piatto", "primi", "supper", "main", "mains", "main course", "main courses", "main dish", "main dishes",
             "diner", "plat principal", "plats principaux", "piatto principale", "secondo", "secondi", "secondi piatti",
             "cena", "plato principal", "plato fuerte", "abendessen", "hauptgericht", "hauptspeise", "夕食", "晩ご飯",
             "晩御飯", "主菜", "メイン", "晚餐",

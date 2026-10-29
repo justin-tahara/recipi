@@ -213,7 +213,7 @@ struct RecipeDetailView: View {
                 PropertyRow("Tags", symbol: "tag") {
                     FlowLayout(spacing: 6) {
                         ForEach(tags) { tag in
-                            TagPill(tag.name)
+                            TagPill(tag.name, color: tag.color)
                         }
                     }
                 }
