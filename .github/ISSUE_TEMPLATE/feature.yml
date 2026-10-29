@@ -1,0 +1,20 @@
+name: Feature idea
+description: Something recipi could do better or should do.
+labels: ["type: feature"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The cooking or planning moment where recipi gets in the way or falls short.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help
+      description: How you'd like it to work. Sketches and examples from other apps are welcome.
+  - type: markdown
+    attributes:
+      value: |
+        recipi has no server, no accounts and no data collection. Ideas that need any of those won't fit, but there's usually an on-device way to get there.

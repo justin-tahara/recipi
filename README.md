@@ -1,4 +1,9 @@
-# recipi
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="design/icon/recipi-wordmark-dark.png">
+    <img src="design/icon/recipi-wordmark.png" alt="recipi" width="300">
+  </picture>
+</h1>
 
 A free, open-source recipe manager for iPhone and iPad. Save recipes from any
 website, keep them in one searchable library, and cook from them with a
@@ -34,7 +39,7 @@ recipi is built as an open alternative to paid recipe apps like Mela.
 
 ## Getting started
 
-Requirements: Xcode 16 or later, iOS 17 or later, and
+Requirements: Xcode 16 or later, iOS 18 or later, and
 [XcodeGen](https://github.com/yonaskolb/XcodeGen).
 
 ```sh
@@ -78,7 +83,8 @@ swift test --package-path Packages/RecipiKit
 
 ## Contributing
 
-Issues and pull requests are welcome.
+Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md)
+for setup, conventions and the privacy rules every change keeps.
 
 ### If a site doesn't import
 

@@ -1,0 +1,49 @@
+name: A recipe site didn't import
+description: A link came in wrong, partly, or not at all.
+title: "Import: "
+labels: ["area: import", "bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks! Import is the feature that matters most, and every broken site helps make it better.
+  - type: input
+    id: url
+    attributes:
+      label: Recipe link
+      description: The page you tried to import.
+      placeholder: https://
+    validations:
+      required: true
+  - type: dropdown
+    id: how
+    attributes:
+      label: How did you import it?
+      options:
+        - Pasted the link in recipi
+        - Shared it from Safari
+        - Shared it from another app
+    validations:
+      required: true
+  - type: checkboxes
+    id: wrong
+    attributes:
+      label: What went wrong?
+      options:
+        - label: Nothing imported ("No recipe was found")
+        - label: Title is wrong or missing
+        - label: Ingredients are missing, merged or split wrong
+        - label: Steps are missing, merged or split wrong
+        - label: Section headings (like "For the sauce") are missing
+        - label: Servings, yield or times are wrong
+        - label: Photo is missing or wrong
+  - type: textarea
+    id: details
+    attributes:
+      label: Anything else
+      description: What you expected and what you got. A screenshot helps.
+  - type: input
+    id: version
+    attributes:
+      label: recipi and iOS version
+      placeholder: recipi 0.1.0, iOS 18.1
