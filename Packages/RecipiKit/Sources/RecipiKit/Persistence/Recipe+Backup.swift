@@ -108,10 +108,14 @@ extension RecipiBackup {
     /// Links that differ only in a trailing slash or the host's case are
     /// the same recipe.
     static func sourceKey(_ url: URL) -> String {
-        var components = URLComponents(url: url, resolvingAgainstBaseURL: true)
-        components?.host = components?.host?.lowercased()
-        components?.scheme = components?.scheme?.lowercased()
-        var key = components?.string ?? url.absoluteString
+        var key = url.absoluteString
+        if var components = URLComponents(url: url, resolvingAgainstBaseURL: true) {
+            let host = components.host?.lowercased()
+            let scheme = components.scheme?.lowercased()
+            components.host = host
+            components.scheme = scheme
+            key = components.string ?? key
+        }
         while key.hasSuffix("/") { key.removeLast() }
         return key
     }
