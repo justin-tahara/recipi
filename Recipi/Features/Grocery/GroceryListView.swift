@@ -4,6 +4,8 @@ import SwiftData
 import SwiftUI
 
 struct GroceryListView: View {
+    /// The add row's icon column, as wide as the rows' checkboxes.
+    @ScaledMetric(relativeTo: .body) private var iconWidth: CGFloat = 22
     @Environment(\.modelContext) private var modelContext
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Query(sort: \GroceryItem.createdAt) private var items: [GroceryItem]
@@ -92,7 +94,7 @@ struct GroceryListView: View {
             Image(systemName: "plus")
                 .font(.body.weight(.semibold))
                 .foregroundStyle(Theme.Colors.accent)
-                .frame(width: 22)
+                .frame(width: iconWidth)
                 .accessibilityHidden(true)
             TextField("Add an item", text: $newItemText)
                 .foregroundStyle(Theme.Colors.textPrimary)

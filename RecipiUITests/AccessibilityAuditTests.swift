@@ -75,6 +75,9 @@ final class AccessibilityAuditTests: XCTestCase {
         app.buttons["Start cooking"].firstMatch.tap()
         let next = app.buttons["cooking.next"]
         XCTAssertTrue(next.waitForExistence(timeout: timeout))
+        if !app.descendants(matching: .any)["Progress"].firstMatch.exists {
+            issues.append("Cooking mode: the progress bar isn't reachable with VoiceOver")
+        }
         try audit(app, screen: "Cooking mode")
         app.buttons["Done"].firstMatch.tap()
         XCTAssertTrue(next.waitForNonExistence(timeout: timeout))
@@ -139,9 +142,28 @@ final class AccessibilityAuditTests: XCTestCase {
             if bars.contains(where: { $0.frame.contains(frame) }) {
                 return true
             }
+            // Settings' Units row is a menu-style Picker, a system control:
+            // recipi gives it a label and UIKit lays out the row and the
+            // chosen value. The audit reports that row's text as only partly
+            // scaling, which recipi can't change short of replacing the
+            // control. The menu it opens scales.
+            if screen == "Settings" {
+                let units = app.staticTexts["Units"].firstMatch
+                if units.exists, frame.minY < units.frame.maxY, frame.maxY > units.frame.minY {
+                    return true
+                }
+            }
         }
 
         guard issue.auditType.contains(.contrast) else { return false }
+
+        // Text the screen edge or the tab bar cuts off is sampled against the
+        // edge or the bar's blur, not the page it's on. It's checked when it
+        // scrolls into view, as in the walk's other screens.
+        let window = app.windows.firstMatch.frame
+        if !window.contains(frame) || app.tabBars.allElementsBoundByIndex.contains(where: { $0.frame.intersects(frame) }) {
+            return true
+        }
 
         // WCAG's contrast rule exempts controls that are turned off, which
         // are meant to look faint (cooking mode's Back on the first step,

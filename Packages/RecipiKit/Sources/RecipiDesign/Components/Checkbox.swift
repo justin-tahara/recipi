@@ -22,11 +22,14 @@ public struct Checkbox: View {
                 .fill(isOn ? tint : Color.clear)
             RoundedRectangle(cornerRadius: Theme.Radius.small, style: .continuous)
                 .strokeBorder(isOn ? tint : Theme.Colors.border, lineWidth: 1.5)
-            Image(systemName: "checkmark")
-                .font(.caption.weight(.bold))
-                .foregroundStyle(Theme.Colors.onAccent)
-                .scaleEffect(isOn ? 1 : 0.3)
-                .opacity(isOn ? 1 : 0)
+            // Only there when ticked: an invisible glyph still counts as
+            // text that doesn't grow, for the accessibility audit.
+            if isOn {
+                Image(systemName: "checkmark")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Theme.Colors.onAccent)
+                    .transition(.scale(scale: 0.3).combined(with: .opacity))
+            }
         }
         .frame(width: size, height: size)
         .animation(reduceMotion ? nil : Motion.bouncy, value: isOn)

@@ -75,9 +75,6 @@ struct SettingsView: View {
                 Label("Units", systemImage: "ruler")
                     .foregroundStyle(Theme.Colors.textPrimary)
             }
-            // A menu picker's value doesn't grow with Dynamic Type; a pushed
-            // list does, like the language picker.
-            .pickerStyle(.navigationLink)
         } header: {
             Text("Measurements")
                 .foregroundStyle(Theme.Colors.textSecondary)

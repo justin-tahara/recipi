@@ -28,6 +28,9 @@ struct TranslationSettingsSection: View {
                     .foregroundStyle(Theme.Colors.textPrimary)
             }
             .pickerStyle(.navigationLink)
+            // The chosen language shows in the secondary style; the theme's
+            // gray is darker than the system's, for contrast.
+            .foregroundStyle(Theme.Colors.textPrimary, Theme.Colors.textSecondary)
 
             Toggle(isOn: $preferences.translatesAutomatically) {
                 Label("Translate automatically", systemImage: "wand.and.stars")
