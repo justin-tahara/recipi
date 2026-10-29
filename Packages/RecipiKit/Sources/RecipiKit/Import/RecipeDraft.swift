@@ -32,6 +32,11 @@ public struct RecipeDraft: Sendable, Equatable {
     public var ingredients: [Line] = []
     public var steps: [Line] = []
     public var tags: [String] = []
+    /// Nutrition per serving, when the page gives it. Used to infer tags
+    /// like "High protein"; see `AutoTagger`.
+    public var nutrition: Nutrition?
+    /// The page's `suitableForDiet` values, e.g. "https://schema.org/VeganDiet".
+    public var diets: [String] = []
 
     public init(title: String) {
         self.title = title

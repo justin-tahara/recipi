@@ -25,7 +25,14 @@ extension Recipe {
         recipe.steps = draft.steps.enumerated().map { index, line in
             Step(text: line.text, order: index, section: line.section)
         }
-        recipe.tags = draft.tags.compactMap { Tag.findOrCreate(named: $0, in: context) }
+        // The page's categories and keywords, tidied onto the tag
+        // vocabulary, plus traits read from its nutrition and times.
+        var seen = Set<PersistentIdentifier>()
+        recipe.tags = AutoTagger.tags(for: draft).compactMap { autoTag in
+            guard let tag = Tag.findOrCreate(named: autoTag.name, kind: autoTag.kind, in: context),
+                  seen.insert(tag.persistentModelID).inserted else { return nil }
+            return tag
+        }
         return recipe
     }
 }
