@@ -124,7 +124,9 @@ struct RecipeEditDraftStoreTests {
         #expect(try context.fetchCount(FetchDescriptor<Ingredient>()) == 5)
         #expect(try context.fetchCount(FetchDescriptor<Step>()) == 2)
         // "dinner" matched the existing tag instead of making a second one.
-        #expect(try context.fetch(FetchDescriptor<Tag>()).filter { $0.name.lowercased() == "dinner" }.count == 1)
+        let tags = try context.fetch(FetchDescriptor<RecipiKit.Tag>())
+        let dinnerTags = tags.filter { $0.name.lowercased() == "dinner" }
+        #expect(dinnerTags.count == 1)
     }
 
     @Test func cancellingLeavesTheRecipeUnchanged() throws {
@@ -246,9 +248,12 @@ struct RecipeEditDraftRowTests {
 struct RecipeEditDraftTagTests {
     @Test func addingATagReusesTheExistingSpelling() {
         var draft = RecipeEditDraft()
-        #expect(draft.addTag(" vegetarian ", existing: ["Vegetarian", "Dinner"]))
-        #expect(!draft.addTag("VEGETARIAN"))
-        #expect(!draft.addTag("   "))
+        let addedFirst = draft.addTag(" vegetarian ", existing: ["Vegetarian", "Dinner"])
+        #expect(addedFirst)
+        let addedDuplicate = draft.addTag("VEGETARIAN")
+        #expect(!addedDuplicate)
+        let addedBlank = draft.addTag("   ")
+        #expect(!addedBlank)
         #expect(draft.tags == ["Vegetarian"])
     }
 
