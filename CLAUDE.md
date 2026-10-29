@@ -35,6 +35,23 @@ something (tag colors, the paprika accent on actions, callouts).
   `Recipi/Shared/ZoomTransition.swift`) need no `#available` check. Anything
   newer goes behind `#available`.
 
+## Accessibility
+
+`RecipiUITests/AccessibilityAuditTests.swift` runs Xcode's accessibility
+audit on the main screens, at the default text size and the largest one, and
+`ContrastTests` checks text colors against WCAG AA (4.5:1). Keep new screens
+passing both:
+
+- Give icon-only buttons a label, hide decorative images, and combine a row
+  into one element when it reads as one thing. A row with a `Checkbox` says
+  its state with `.checkedState(_:)`.
+- Touch targets are at least 44 pt (`.frame(minWidth: 44, minHeight: 44)`
+  with `.contentShape`); the drawn shape can stay smaller.
+- Text never sits in a fixed-height frame. Custom sizes use `@ScaledMetric`,
+  and side-by-side layouts stack when `dynamicTypeSize.isAccessibilitySize`.
+- A text color is a `Theme.Colors` token or a `TagColor` foreground on its
+  background, which the tests cover. Changing a value means rechecking them.
+
 ## SwiftData + CloudKit rules
 
 These fail at runtime, not compile time:

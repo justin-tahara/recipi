@@ -75,8 +75,10 @@ struct BackupSection: View {
             }
         } header: {
             Text("Backup")
+                .foregroundStyle(Theme.Colors.textSecondary)
         } footer: {
             Text("Saves every recipe with its photos, notes, tags and cook history as a .zip you can keep in Files, iCloud Drive, Google Drive or Dropbox. Each recipe is a schema.org file other apps can read. Restoring adds only recipes you don't already have.")
+                .foregroundStyle(Theme.Colors.textSecondary)
         }
         .motion(Motion.snappy, value: outcome)
         .motion(Motion.snappy, value: isWorking)

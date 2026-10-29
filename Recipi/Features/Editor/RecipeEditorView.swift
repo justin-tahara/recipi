@@ -122,13 +122,12 @@ struct RecipeEditorView: View {
     private var photoSection: some View {
         Section("Photo") {
             if draft.photoData != nil {
-                RecipePhoto(data: draft.photoData, title: draft.title)
+                RecipePhoto(data: draft.photoData, title: draft.title, photoLabel: "Recipe photo")
                     .frame(height: 180)
                     .frame(maxWidth: .infinity)
                     .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.medium, style: .continuous))
                     .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
                     .transition(.opacity)
-                    .accessibilityHidden(true)
             }
             // PhotosPicker's label closure is Sendable, so read the
             // main-actor state here rather than inside it.

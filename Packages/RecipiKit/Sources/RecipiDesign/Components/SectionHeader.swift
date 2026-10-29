@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// A heading for a block of a page, with room for a control on the right.
+/// A heading for a block of a page, with room for a count or note on the
+/// right. VoiceOver reads both as one header, e.g. "Ingredients, 4".
 public struct SectionHeader<Accessory: View>: View {
     let title: String
     let accessory: Accessory
@@ -15,10 +16,11 @@ public struct SectionHeader<Accessory: View>: View {
             Text(title)
                 .font(Theme.Fonts.sectionTitle)
                 .foregroundStyle(Theme.Colors.textPrimary)
-                .accessibilityAddTraits(.isHeader)
             Spacer(minLength: Theme.Spacing.sm)
             accessory
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
     }
 }
 
