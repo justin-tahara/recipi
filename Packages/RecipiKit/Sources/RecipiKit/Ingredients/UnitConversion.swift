@@ -176,6 +176,10 @@ enum UnitConverter {
         let word = start.prefix { $0.isLetter }
         guard !word.isEmpty else { return nil }
         var after = start.dropFirst(word.count)
+        // Foreign units can be several words or run into the name.
+        if let foreign = Units.foreignMatch(atStartOf: start) {
+            after = start.dropFirst(foreign.length)
+        }
 
         if ["fl", "fluid"].contains(word.lowercased()) {
             if after.first == "." { after = after.dropFirst() }

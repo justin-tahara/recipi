@@ -110,6 +110,33 @@ struct RecipeLanguageDetectionTests {
         #expect(RecipeLanguage.detect(text) == expected)
     }
 
+    /// The non-English pages in the import fixture corpus, imported the way
+    /// the app imports them.
+    @Test(arguments: [("lang-fr", "fr"), ("lang-de", "de"), ("lang-it", "it"), ("lang-ja", "ja")])
+    func detectsImportedFixtures(file: String, expected: String) throws {
+        let draft = try RecipeImporter.parse(html: Fixture.html(file), sourceURL: nil)
+        let text = RecipeText(
+            title: draft.title,
+            summary: draft.summary,
+            ingredients: draft.ingredients.map { RecipeText.Line($0.text, section: $0.section) },
+            steps: draft.steps.map { RecipeText.Line($0.text, section: $0.section) }
+        )
+        #expect(RecipeLanguage.detect(text) == expected)
+    }
+
+    @Test func englishFixturesAreEnglish() throws {
+        for file in ["wprm-sections", "tasty-recipes", "microdata-only"] {
+            let draft = try RecipeImporter.parse(html: Fixture.html(file), sourceURL: nil)
+            let text = RecipeText(
+                title: draft.title,
+                summary: draft.summary,
+                ingredients: draft.ingredients.map { RecipeText.Line($0.text) },
+                steps: draft.steps.map { RecipeText.Line($0.text) }
+            )
+            #expect(RecipeLanguage.detect(text) == "en", "\(file)")
+        }
+    }
+
     @Test func saysNothingWithoutWords() {
         #expect(RecipeLanguage.detect("") == nil)
         #expect(RecipeLanguage.detect("250 / 2 · 30") == nil)
@@ -377,6 +404,16 @@ struct ForeignUnitTests {
         #expect(Units.foreignMatch(atStartOf: "大さじ2")?.unit == "tbsp")
         #expect(Units.foreignMatch(atStartOf: "小さじ1/2")?.unit == "tsp")
         #expect(Units.foreignMatch(atStartOf: "グラム鶏肉")?.length == 3)
+    }
+
+    @Test(arguments: [
+        ("2 cuillères à soupe de farine", "30 ml de farine"),
+        ("1 c. à c. de sel", "5 ml de sel"),
+        ("2 EL Butter", "30 ml Butter"),
+        ("1 cucharadita de sal", "5 ml de sal"),
+    ])
+    func convertsForeignSpoons(line: String, expected: String) {
+        #expect(IngredientParser.parse(line).display(scaledBy: 1, in: .metric) == expected)
     }
 
     @Test func scalingKeepsTheForeignUnit() {
