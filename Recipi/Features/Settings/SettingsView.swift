@@ -3,7 +3,7 @@ import RecipiKit
 import SwiftUI
 
 /// App-wide preferences, opened from the gear in the Library. More sections
-/// (language, backup) arrive with their own features.
+/// (language) arrive with their own features.
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
 
@@ -22,6 +22,8 @@ struct SettingsView: View {
                     tagsSection
                     syncSection
                     TranslationSettingsSection(preferences: preferences)
+                    // Its own view, in BackupSection.swift.
+                    BackupSection()
                     aboutSection
                 }
                 .listRowBackground(Theme.Colors.elevated)

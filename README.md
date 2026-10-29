@@ -29,6 +29,10 @@ recipi is built as an open alternative to paid recipe apps like Mela.
   Add a recipe's ingredients to the grocery list, or send the list to
   Reminders.
 - **iCloud sync.** SwiftData with CloudKit, using your private database.
+- **Backup and export.** Save your whole library as a `.zip` to Files,
+  iCloud Drive, Google Drive or Dropbox, and restore it later. Each recipe is
+  schema.org JSON-LD that other apps can read; see
+  [docs/backup-format.md](docs/backup-format.md).
 
 ### v2 (planned)
 
