@@ -1,0 +1,15 @@
+# Keeps GitHub Actions and any future Swift package dependencies up to date.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: swift
+    directory: /Packages/RecipiKit
+    schedule:
+      interval: weekly
