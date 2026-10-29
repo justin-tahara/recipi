@@ -1,0 +1,33 @@
+name: Bug report
+description: Something in recipi doesn't work the way it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If a recipe link didn't import, please use **A recipe site didn't import** instead.
+        For a security problem, report it privately (see SECURITY.md), not here.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you saw instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open a recipe
+        2. Tap Edit
+        3. ...
+  - type: input
+    id: version
+    attributes:
+      label: recipi and iOS version
+      placeholder: recipi 0.1.0, iOS 18.1, iPhone 16
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or anything else

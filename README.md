@@ -78,9 +78,11 @@ swift test --package-path Packages/RecipiKit
 
 ## Contributing
 
-Issues and pull requests are welcome. If a recipe site doesn't import
-correctly, please open an issue with the link. Fixes to the fallback parser
-should come with a test that uses a trimmed copy of that page's markup.
+Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md)
+for setup, conventions and the privacy rules every change keeps. If a recipe
+site doesn't import correctly, please open an issue with the link. Fixes to
+the fallback parser should come with a test that uses a trimmed copy of that
+page's markup.
 
 ## License
 
