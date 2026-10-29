@@ -45,8 +45,19 @@ public final class Recipe {
     /// The newest `cookLogs` date, stored so the Library can sort by it.
     public var lastCookedAt: Date?
 
+    // MARK: Backup identity
+
+    /// A stable ID that travels with the recipe in backups, so restoring the
+    /// same backup twice doesn't add it twice. Optional rather than a
+    /// default value: SwiftData fills an added property's default into
+    /// every existing row, which would give all older recipes the same ID.
+    /// Recipes made before this existed get one on their first export (see
+    /// `ensureUUID()`). Not unique; CloudKit doesn't allow that.
+    public var uuid: UUID?
+
     public init(title: String = "") {
         self.title = title
+        self.uuid = UUID()
     }
 }
 
