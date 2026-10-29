@@ -143,10 +143,10 @@ struct ImportFailureTests {
 
     // MARK: - Redirects
 
-    @Test func followsARedirectChain() async throws {
+    @Test func followsARedirectChainAndSavesTheLinkWithoutTracking() async throws {
         let short = URL(string: "https://chain.fixture.test/s/1")!
         let middle = URL(string: "https://chain.fixture.test/go/soup")!
-        let page = URL(string: "https://chain.fixture.test/recipes/soup/?serving=4")!
+        let page = URL(string: "https://chain.fixture.test/recipes/soup/?utm_source=newsletter&utm_medium=email&serving=4")!
         let importer = importer([
             short: .redirect(to: middle, status: 301),
             middle: .redirect(to: page, status: 302),
@@ -155,7 +155,7 @@ struct ImportFailureTests {
         var trace = ImportTrace()
         let draft = try await importer.importRecipe(from: short, trace: &trace)
         #expect(draft.title == "Roasted Tomato Soup")
-        #expect(draft.sourceURL == page)
+        #expect(draft.sourceURL == URL(string: "https://chain.fixture.test/recipes/soup/?serving=4"))
         // URLSession follows the redirects within one fetch.
         #expect(trace.fetches.count == 1)
         #expect(trace.fetches.first?.finalURL == page)
@@ -182,6 +182,28 @@ struct ImportFailureTests {
         let page = URL(string: "https://upgrade.fixture.test/recipes/soup/")!
         let importer = importer([page: .html(try Fixture.html("yield-range-string-image"))])
         let draft = try await importer.importRecipe(from: URL(string: "http://upgrade.fixture.test/recipes/soup/")!)
+        #expect(draft.sourceURL == page)
+    }
+
+    @Test func importsThePageBehindAGoogleAMPLink() async throws {
+        let page = URL(string: "https://ampviewer.fixture.test/recipes/soup/")!
+        let importer = importer([page: .html(try Fixture.html("yield-range-string-image"))])
+        let draft = try await importer.importRecipe(from: URL(string: "https://www.google.com/amp/s/ampviewer.fixture.test/recipes/soup/")!)
+        #expect(draft.sourceURL == page)
+    }
+
+    @Test func followsAnAppleNewsLinkToThePublishersPage() async throws {
+        let news = URL(string: "https://apple.news/AFixtureStory1")!
+        let page = URL(string: "https://publisher.fixture.test/recipes/soup/")!
+        let newsPage = """
+        <html><head><title>Roasted Tomato Soup</title></head><body>
+        <a class="click-here" href="https://apps.apple.com/app/apple-news/id1066498020">Open in News</a>
+        <script>redirectToUrlAfterTimeout("https:\\/\\/publisher.fixture.test\\/recipes\\/soup\\/", 0);</script>
+        </body></html>
+        """
+        let importer = importer([news: .html(newsPage), page: .html(try Fixture.html("yield-range-string-image"))])
+        let draft = try await importer.importRecipe(from: news)
+        #expect(draft.title == "Roasted Tomato Soup")
         #expect(draft.sourceURL == page)
     }
 
