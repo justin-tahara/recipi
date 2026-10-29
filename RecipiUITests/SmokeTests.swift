@@ -13,7 +13,9 @@ final class SmokeTests: XCTestCase {
     func testImportScaleCookAndShop() throws {
         continueAfterFailure = false
         let app = XCUIApplication()
-        app.launchArguments = ["-ui-testing"]
+        // A metric region, so amounts show in grams whatever the runner's
+        // locale is.
+        app.launchArguments = ["-ui-testing", "-AppleLocale", "en_GB"]
         app.launch()
 
         // Import from the empty library.
@@ -47,7 +49,8 @@ final class SmokeTests: XCTestCase {
         // The stepper is one accessible element; tap its plus half.
         servings.coordinate(withNormalizedOffset: CGVector(dx: 0.85, dy: 0.5)).tap()
         XCTAssertEqual(servings.value as? String, "5")
-        XCTAssertTrue(app.staticTexts["500 g spaghetti"].waitForExistence(timeout: timeout))
+        // An amount is a button that scales to what you have, so match by label.
+        XCTAssertTrue(labeled("500 g spaghetti", in: app).waitForExistence(timeout: timeout))
 
         // Cooking mode: two steps, then finish.
         app.buttons["Start cooking"].firstMatch.tap()
@@ -72,6 +75,12 @@ final class SmokeTests: XCTestCase {
         XCTAssertEqual(items.count, 4)
         let spaghetti = items.matching(NSPredicate(format: "label CONTAINS %@", "500 g spaghetti")).firstMatch
         XCTAssertTrue(spaghetti.exists)
+    }
+
+    /// Finds an element whose label contains `label`, whatever its type.
+    @MainActor
+    private func labeled(_ label: String, in app: XCUIApplication) -> XCUIElement {
+        app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", label)).firstMatch
     }
 
     /// Finds an element by identifier whatever its accessibility type.
