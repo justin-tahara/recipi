@@ -370,7 +370,7 @@ struct BackupStoreTests {
         let photosByID = Dictionary(uniqueKeysWithValues: restored.map { ($0.id, $0.photoData) })
         let expectedPhotos = Dictionary(uniqueKeysWithValues: sampleBackups().map { ($0.id, $0.photoData) })
         #expect(photosByID == expectedPhotos)
-        #expect(try destination.fetchCount(FetchDescriptor<Tag>()) == 4)
+        #expect(try destination.fetchCount(FetchDescriptor<RecipiKit.Tag>()) == 4)
 
         // Cook history comes back too, with lastCookedAt worked out again.
         #expect(try destination.fetchCount(FetchDescriptor<CookLog>()) == 2)
