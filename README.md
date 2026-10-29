@@ -1,4 +1,9 @@
-# recipi
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="design/icon/recipi-wordmark-dark.png">
+    <img src="design/icon/recipi-wordmark.png" alt="recipi" width="300">
+  </picture>
+</h1>
 
 A free, open-source recipe manager for iPhone and iPad. Save recipes from any
 website, keep them in one searchable library, and cook from them with a
