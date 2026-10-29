@@ -19,6 +19,9 @@ struct RecipeDetailView: View {
     /// True once the big title has scrolled under the navigation bar, so the
     /// bar can show it instead.
     @State private var isTitleScrolledAway = false
+    @State private var preferences = Preferences()
+    /// Units picked for this recipe only. Nil follows the app setting.
+    @State private var unitsOverride: MeasurementPreference?
 
     var body: some View {
         ScrollView {
@@ -105,7 +108,7 @@ struct RecipeDetailView: View {
             }
         }
         .fullScreenCover(isPresented: $isCooking) {
-            CookingModeView(recipe: recipe, scale: scale)
+            CookingModeView(recipe: recipe, scale: scale, units: units)
         }
         .sheet(isPresented: $isEditing) {
             RecipeEditorView(recipe: recipe)
@@ -168,6 +171,11 @@ struct RecipeDetailView: View {
             } else if let yieldText = recipe.yieldText, !yieldText.isEmpty {
                 PropertyRow("Makes", symbol: "person.2") { Text(yieldText) }
             }
+            if !recipe.sortedIngredients.isEmpty {
+                PropertyRow("Units", symbol: "ruler") {
+                    unitsPicker
+                }
+            }
             if !tags.isEmpty {
                 PropertyRow("Tags", symbol: "tag") {
                     FlowLayout(spacing: 6) {
@@ -203,7 +211,7 @@ struct RecipeDetailView: View {
                     if let section = ingredient.section, index == 0 || ingredients[index - 1].section != section {
                         eyebrow(section)
                     }
-                    let parts = ingredient.parsed.scaledParts(by: scale)
+                    let parts = ingredient.parsed.displayParts(scaledBy: scale, in: units)
                     HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.sm) {
                         Text("•")
                             .fontWeight(.bold)
@@ -216,6 +224,7 @@ struct RecipeDetailView: View {
                 }
             }
             .motion(Motion.bouncy, value: servings)
+            .motion(Motion.smooth, value: units)
         }
     }
 
@@ -236,7 +245,7 @@ struct RecipeDetailView: View {
                             .frame(width: 26, height: 26)
                             .background(Theme.Colors.accentSoft, in: Circle())
                             .accessibilityLabel("Step \(index + 1)")
-                        Text(step.text)
+                        Text(TemperatureConverter.convert(step.text, to: units))
                             .foregroundStyle(Theme.Colors.textPrimary)
                             .lineSpacing(3)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -255,7 +264,33 @@ struct RecipeDetailView: View {
             .padding(.top, Theme.Spacing.xs)
     }
 
+    private var unitsPicker: some View {
+        Menu {
+            Picker("Units", selection: Binding(get: { units }, set: { unitsOverride = $0 })) {
+                ForEach(MeasurementPreference.allCases) { option in
+                    Text(option.title).tag(option)
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(units.title)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Theme.Colors.textTertiary)
+            }
+            .foregroundStyle(Theme.Colors.textPrimary)
+            .contentTransition(.opacity)
+        }
+        .accessibilityLabel("Units")
+        .accessibilityValue(units.title)
+        .sensoryFeedback(.selection, trigger: units)
+    }
+
     // MARK: - Helpers
+
+    private var units: MeasurementPreference {
+        unitsOverride ?? preferences.measurements
+    }
 
     private var displayTitle: String {
         recipe.title.isEmpty ? "Untitled recipe" : recipe.title
@@ -274,7 +309,7 @@ struct RecipeDetailView: View {
     private func addToGroceryList() {
         let ingredients = recipe.sortedIngredients
         for ingredient in ingredients {
-            modelContext.insert(GroceryItem(text: ingredient.parsed.scaled(by: scale), recipeTitle: recipe.title))
+            modelContext.insert(GroceryItem(text: ingredient.parsed.display(scaledBy: scale, in: units), recipeTitle: recipe.title))
         }
         toastMessage = ingredients.count == 1
             ? "Added 1 item to Groceries"

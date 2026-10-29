@@ -9,6 +9,7 @@ import UIKit
 struct CookingModeView: View {
     let recipe: Recipe
     let scale: Double
+    let units: MeasurementPreference
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -28,7 +29,7 @@ struct CookingModeView: View {
 
                 TabView(selection: $currentStep) {
                     ForEach(Array(steps.enumerated()), id: \.element.id) { index, step in
-                        StepPage(step: step, number: index + 1, count: steps.count)
+                        StepPage(step: step, number: index + 1, count: steps.count, units: units)
                             .tag(index)
                     }
                 }
@@ -65,6 +66,7 @@ struct CookingModeView: View {
                 IngredientChecklist(
                     ingredients: ingredients,
                     scale: scale,
+                    units: units,
                     checked: $checkedIngredients
                 )
                 .presentationDetents([.medium, .large])
@@ -140,6 +142,7 @@ private struct StepPage: View {
     let step: Step
     let number: Int
     let count: Int
+    let units: MeasurementPreference
 
     var body: some View {
         ScrollView {
@@ -158,7 +161,7 @@ private struct StepPage: View {
                     TagPill(section)
                 }
 
-                Text(step.text)
+                Text(TemperatureConverter.convert(step.text, to: units))
                     .font(Theme.Fonts.step)
                     .foregroundStyle(Theme.Colors.textPrimary)
                     .lineSpacing(6)
@@ -175,6 +178,7 @@ private struct StepPage: View {
 private struct IngredientChecklist: View {
     let ingredients: [Ingredient]
     let scale: Double
+    let units: MeasurementPreference
     @Binding var checked: Set<PersistentIdentifier>
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -237,7 +241,7 @@ private struct IngredientChecklist: View {
         } label: {
             HStack(spacing: Theme.Spacing.sm) {
                 Checkbox(isOn: isChecked)
-                Text(ingredient.parsed.scaled(by: scale))
+                Text(ingredient.parsed.display(scaledBy: scale, in: units))
                     .strikethrough(isChecked, color: Theme.Colors.textTertiary)
                     .foregroundStyle(isChecked ? Theme.Colors.textTertiary : Theme.Colors.textPrimary)
                 Spacer(minLength: 0)

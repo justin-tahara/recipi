@@ -22,6 +22,14 @@ struct PreferenceKeyTests {
         }
     }
 
+    @Test func measurementsFollowTheDeviceUntilChanged() {
+        withScratchDefaults { defaults in
+            #expect(defaults.preference(PreferenceKeys.measurements) == MeasurementPreference.deviceDefault())
+            defaults.setPreference(.asWritten, for: PreferenceKeys.measurements)
+            #expect(defaults.preference(PreferenceKeys.measurements) == .asWritten)
+        }
+    }
+
     @Test func boolRoundTrips() {
         withScratchDefaults { defaults in
             defaults.setPreference(false, for: PreferenceKeys.iCloudSync)

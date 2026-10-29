@@ -21,6 +21,14 @@ public enum PreferenceKeys {
     /// default. The store reads this when it opens, so a change applies the
     /// next time the app (or the share extension) starts.
     public static let iCloudSync = PreferenceKey<Bool>("sync.iCloudEnabled", default: true)
+
+    /// How ingredient amounts and oven temperatures are shown. Follows the
+    /// device's measurement system until the person picks one. Each recipe
+    /// can still be switched on its own screen.
+    public static let measurements = PreferenceKey<MeasurementPreference>(
+        "display.measurements",
+        default: .deviceDefault()
+    )
 }
 
 /// A type that can be stored in `UserDefaults`. Bool, Int, Double and String

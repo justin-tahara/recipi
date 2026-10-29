@@ -3,7 +3,7 @@ import RecipiKit
 import SwiftUI
 
 /// App-wide preferences, opened from the gear in the Library. More sections
-/// (measurements, language, backup) arrive with their own features.
+/// (language, backup) arrive with their own features.
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
 
@@ -18,6 +18,7 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Group {
+                    measurementsSection
                     syncSection
                     aboutSection
                 }
@@ -40,6 +41,25 @@ struct SettingsView: View {
             }
         }
         .tint(Theme.Colors.accent)
+    }
+
+    // MARK: Measurements
+
+    private var measurementsSection: some View {
+        Section {
+            Picker(selection: $preferences.measurements) {
+                ForEach(MeasurementPreference.allCases) { option in
+                    Text(option.title).tag(option)
+                }
+            } label: {
+                Label("Units", systemImage: "ruler")
+                    .foregroundStyle(Theme.Colors.textPrimary)
+            }
+        } header: {
+            Text("Measurements")
+        } footer: {
+            Text("Shows amounts and oven temperatures in the units you're used to. Only like for like: cups become milliliters and ounces become grams, never cups into grams. You can switch a single recipe from its page.")
+        }
     }
 
     // MARK: iCloud sync
