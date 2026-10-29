@@ -25,6 +25,9 @@ public enum PreferenceKeys {
     /// How ingredient amounts and oven temperatures are shown. Follows the
     /// device's measurement system until the person picks one. Each recipe
     /// can still be switched on its own screen.
+    /// How the Library orders recipes.
+    public static let librarySort = PreferenceKey<LibrarySort>("library.sort", default: .title)
+
     public static let measurements = PreferenceKey<MeasurementPreference>(
         "display.measurements",
         default: .deviceDefault()

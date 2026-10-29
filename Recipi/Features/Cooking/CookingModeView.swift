@@ -16,6 +16,7 @@ struct CookingModeView: View {
     @State private var currentStep = 0
     @State private var checkedIngredients: Set<PersistentIdentifier> = []
     @State private var showsIngredients = false
+    @State private var isLoggingCook = false
 
     var body: some View {
         let steps = recipe.sortedSteps
@@ -73,6 +74,12 @@ struct CookingModeView: View {
                 .presentationBackground(Theme.Colors.background)
             }
             .sensoryFeedback(.selection, trigger: currentStep)
+            // Finishing offers to log the cook; either way cooking mode
+            // closes once the sheet does.
+            .sheet(isPresented: $isLoggingCook, onDismiss: { dismiss() }) {
+                LogCookSheet(recipe: recipe, cancelTitle: "Skip")
+                    .presentationDetents([.medium, .large])
+            }
         }
         .tint(Theme.Colors.accent)
         .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
@@ -93,7 +100,7 @@ struct CookingModeView: View {
 
             Button {
                 if isLast {
-                    dismiss()
+                    isLoggingCook = true
                 } else {
                     go(to: currentStep + 1)
                 }
