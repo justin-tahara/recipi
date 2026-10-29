@@ -47,7 +47,8 @@ final class SmokeTests: XCTestCase {
         // The stepper is one accessible element; tap its plus half.
         servings.coordinate(withNormalizedOffset: CGVector(dx: 0.85, dy: 0.5)).tap()
         XCTAssertEqual(servings.value as? String, "5")
-        XCTAssertTrue(app.staticTexts["500 g spaghetti"].waitForExistence(timeout: timeout))
+        // Ingredient rows with an amount are buttons, so match any element.
+        XCTAssertTrue(labeled("500 g spaghetti", in: app).waitForExistence(timeout: timeout))
 
         // Cooking mode: two steps, then finish.
         app.buttons["Start cooking"].firstMatch.tap()
@@ -57,6 +58,11 @@ final class SmokeTests: XCTestCase {
         next.tap()
         XCTAssertTrue(next.label.hasPrefix("Finish"), "Expected the last step, got \(next.label)")
         next.tap()
+
+        // Finishing offers to log the cook; skipping closes cooking mode.
+        let skip = app.buttons["Skip"].firstMatch
+        XCTAssertTrue(skip.waitForExistence(timeout: timeout))
+        skip.tap()
         XCTAssertTrue(next.waitForNonExistence(timeout: timeout))
 
         // Add the scaled ingredients to the grocery list.
@@ -72,6 +78,12 @@ final class SmokeTests: XCTestCase {
         XCTAssertEqual(items.count, 4)
         let spaghetti = items.matching(NSPredicate(format: "label CONTAINS %@", "500 g spaghetti")).firstMatch
         XCTAssertTrue(spaghetti.exists)
+    }
+
+    /// Finds an element by its label whatever its accessibility type.
+    @MainActor
+    private func labeled(_ label: String, in app: XCUIApplication) -> XCUIElement {
+        app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", label)).firstMatch
     }
 
     /// Finds an element by identifier whatever its accessibility type.
