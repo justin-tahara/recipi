@@ -5,7 +5,8 @@ README.md for the feature scope; v2 items are out of scope until v1 ships.
 
 ## Stack and conventions
 
-- Swift 6 language mode with strict concurrency, SwiftUI, iOS 17 minimum.
+- Swift 6 language mode with strict concurrency, SwiftUI, iOS 18 minimum (raise it
+  only when a feature needs a newer iOS).
 - MVVM with `@Observable` when a screen needs state beyond simple `@State`
   and `@Query`; plain views otherwise.
 - SwiftData for storage, synced with CloudKit (private database). No backend.
@@ -28,8 +29,9 @@ something (tag colors, the paprika accent on actions, callouts).
 - Animate with `Motion` and the helpers `withMotion(_:reduceMotion:)`,
   `.motion(_:value:)` and `.bounceEffect(value:)`, which turn movement off
   under Reduce Motion. Don't call `withAnimation` directly in screens.
-- iOS 18-only APIs (the library-to-recipe zoom) go behind `#available`; see
-  `Recipi/Shared/ZoomTransition.swift`.
+- The minimum is iOS 18, so iOS 18 APIs (like the library-to-recipe zoom in
+  `Recipi/Shared/ZoomTransition.swift`) need no `#available` check. Anything
+  newer goes behind `#available`.
 
 ## SwiftData + CloudKit rules
 
