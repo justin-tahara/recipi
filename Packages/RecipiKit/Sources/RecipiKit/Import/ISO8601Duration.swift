@@ -4,7 +4,8 @@ import Foundation
 /// e.g. "PT1H30M" or "P0DT0H20M".
 public enum ISO8601Duration {
     public static func seconds(from string: String) -> TimeInterval? {
-        let value = string.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        // Some sites put spaces inside, e.g. "PT1H 30M".
+        let value = string.filter { !$0.isWhitespace }.uppercased()
         guard value.hasPrefix("P") else { return nil }
 
         var total: TimeInterval = 0

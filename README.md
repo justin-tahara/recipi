@@ -78,9 +78,17 @@ swift test --package-path Packages/RecipiKit
 
 ## Contributing
 
-Issues and pull requests are welcome. If a recipe site doesn't import
-correctly, please open an issue with the link. Fixes to the fallback parser
-should come with a test that uses a trimmed copy of that page's markup.
+Issues and pull requests are welcome.
+
+### If a site doesn't import
+
+Please [report the site](https://github.com/justin-tahara/recipi/issues/new?template=site-import.yml)
+with the link and what went wrong. To fix it yourself, run
+`python3 scripts/capture_fixture.py <link> -o Packages/RecipiKit/Tests/RecipiKitTests/Fixtures/<pattern>.html`
+to save a trimmed copy of the page's recipe markup, add a row for it in
+`FixtureCorpusTests.swift`, and then change the parser until it passes. A
+nightly check also imports a list of real sites
+(`scripts/live-check-urls.txt`) and reports any that stop working.
 
 ## License
 

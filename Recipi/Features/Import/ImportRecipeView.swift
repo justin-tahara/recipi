@@ -105,12 +105,10 @@ struct ImportRecipeView: View {
         .motion(Motion.snappy, value: isFieldFocused)
     }
 
+    /// The link in the field. Pasted text with a title or comment around the
+    /// link works too.
     private var url: URL? {
-        let text = urlText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let url = URL(string: text), let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else {
-            return nil
-        }
-        return url
+        SharedLink.firstWebURL(in: urlText)
     }
 
     private func importRecipe() async {

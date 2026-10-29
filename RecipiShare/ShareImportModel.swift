@@ -63,8 +63,8 @@ final class ShareImportModel {
             }
         }
         // Some apps share a link as text, sometimes with a title in front.
-        for provider in providers where provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) {
-            if let text = await loadText(from: provider), let url = firstLink(in: text) {
+        for provider in providers where provider.hasItemConformingToTypeIdentifier(UTType.text.identifier) {
+            if let text = await loadText(from: provider), let url = SharedLink.firstWebURL(in: text) {
                 return url
             }
         }
@@ -85,11 +85,5 @@ final class ShareImportModel {
                 continuation.resume(returning: text)
             }
         }
-    }
-
-    private func firstLink(in text: String) -> URL? {
-        let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
-        let range = NSRange(text.startIndex..., in: text)
-        return detector?.firstMatch(in: text, range: range)?.url
     }
 }

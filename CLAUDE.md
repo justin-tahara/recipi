@@ -44,8 +44,14 @@ These fail at runtime, not compile time:
 ## Importing
 
 `RecipeImporter` tries `SchemaRecipeParser` (JSON-LD) first, then
-`FallbackRecipeParser`. When a real site fails, add its trimmed markup as a
-test in `RecipeParserTests.swift` before changing the parser.
+`FallbackRecipeParser` (microdata, WP Recipe Maker, Tasty Recipes). With no
+recipe in the served HTML it follows a meta refresh or an AMP page's
+canonical link, then renders the page in an offscreen `WKWebView`
+(`RenderedPageReader`). When a real site fails, capture it with
+`scripts/capture_fixture.py` into `Tests/RecipiKitTests/Fixtures/` and add a
+row in `FixtureCorpusTests.swift` before changing the parser. Name fixtures
+after the markup pattern they show. The nightly live check
+(`.github/workflows/live-import-check.yml`) imports `scripts/live-check-urls.txt`.
 
 ## Build and test
 

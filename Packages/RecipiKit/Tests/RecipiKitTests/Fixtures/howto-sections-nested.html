@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<!-- Hand-written fixture: HowToSection steps whose HowToSteps hold their text
+     in nested itemListElement entries (HowToDirection and HowToTip), and a
+     section with no name. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Overnight Focaccia</title>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Recipe",
+  "name": "Overnight Focaccia",
+  "image": "https://example.com/images/focaccia.jpg",
+  "recipeYield": "1 sheet pan",
+  "prepTime": "PT20M",
+  "cookTime": "PT25M",
+  "totalTime": "PT14H",
+  "recipeIngredient": [
+    "500 g bread flour",
+    "400 g water",
+    "10 g salt",
+    "2 g instant yeast",
+    "60 ml olive oil, divided"
+  ],
+  "recipeInstructions": [
+    {
+      "@type": "HowToSection",
+      "name": "The night before",
+      "itemListElement": [
+        {
+          "@type": "HowToStep",
+          "itemListElement": [
+            {"@type": "HowToDirection", "text": "Mix the flour, water, salt and yeast until no dry flour remains."},
+            {"@type": "HowToTip", "text": "The dough will be very wet; that's what you want."}
+          ]
+        },
+        {"@type": "HowToStep", "text": "Cover and refrigerate for 12 to 18 hours."}
+      ]
+    },
+    {
+      "@type": "HowToSection",
+      "name": "Baking day",
+      "itemListElement": [
+        {"@type": "HowToStep", "text": "Pour half the oil into a sheet pan and tip the dough onto it."},
+        {"@type": "HowToStep", "text": "Let it rise for 2 hours, then dimple it with oiled fingers."},
+        {"@type": "HowToStep", "text": "Bake at 450°F for 25 minutes."}
+      ]
+    },
+    {
+      "@type": "HowToSection",
+      "itemListElement": [
+        {"@type": "HowToStep", "text": "Cool on a rack for 10 minutes before cutting."}
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body></body>
+</html>
