@@ -70,7 +70,10 @@ struct TagFilterBar: View {
             Text(section.title)
                 .font(Theme.Fonts.eyebrow)
                 .textCase(.uppercase)
-                .foregroundStyle(Theme.Colors.textTertiary)
+                // Secondary, like the recipe page's eyebrows: the tertiary
+                // gray passes on paper but sits too close to the line at
+                // the largest text sizes, where the audit flagged it.
+                .foregroundStyle(Theme.Colors.textSecondary)
                 .fixedSize()
         }
         .padding(.leading, Theme.Spacing.xxs)
