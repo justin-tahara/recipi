@@ -61,6 +61,7 @@ struct SettingsView: View {
             }
         } footer: {
             Text("Rename, merge, recolor or delete tags. recipi tags imported recipes by cuisine, meal, diet and traits like quick or high protein.")
+                .foregroundStyle(Theme.Colors.textSecondary)
         }
     }
 
@@ -76,8 +77,10 @@ struct SettingsView: View {
             }
         } header: {
             Text("Measurements")
+                .foregroundStyle(Theme.Colors.textSecondary)
         } footer: {
             Text("Shows amounts and oven temperatures in the units you're used to. Only like for like: cups become milliliters and ounces become grams, never cups into grams. You can switch a single recipe from its page.")
+                .foregroundStyle(Theme.Colors.textSecondary)
         }
     }
 
@@ -105,8 +108,10 @@ struct SettingsView: View {
             }
         } header: {
             Text("Sync")
+                .foregroundStyle(Theme.Colors.textSecondary)
         } footer: {
             Text(syncFooter)
+                .foregroundStyle(Theme.Colors.textSecondary)
         }
     }
 
@@ -144,6 +149,16 @@ struct SettingsView: View {
             }
             .accessibilityHint("Opens in your browser")
 
+            Link(destination: AppInfo.privacyPolicyURL) {
+                linkLabel("Privacy policy", systemImage: "hand.raised")
+            }
+            .accessibilityHint("Opens in your browser")
+
+            Link(destination: AppInfo.supportURL) {
+                linkLabel("Support", systemImage: "questionmark.circle")
+            }
+            .accessibilityHint("Opens in your browser")
+
             Label {
                 Text("Your recipes stay on your device and in your own iCloud. There's no account, and recipi collects no data.")
                     .font(Theme.Fonts.meta)
@@ -155,6 +170,7 @@ struct SettingsView: View {
             .accessibilityElement(children: .combine)
         } header: {
             Text("About")
+                .foregroundStyle(Theme.Colors.textSecondary)
         }
     }
 
@@ -184,4 +200,8 @@ private enum AppInfo {
     // Constant strings, so these never fail.
     static let repositoryURL = URL(string: "https://github.com/justin-tahara/recipi")!
     static let licenseURL = URL(string: "https://github.com/justin-tahara/recipi/blob/main/LICENSE")!
+    // Published from docs/ on GitHub Pages. App Store Connect uses the
+    // same two pages.
+    static let privacyPolicyURL = URL(string: "https://justin-tahara.github.io/recipi/privacy")!
+    static let supportURL = URL(string: "https://justin-tahara.github.io/recipi/support")!
 }

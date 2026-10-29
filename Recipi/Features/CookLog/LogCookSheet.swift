@@ -59,13 +59,12 @@ struct LogCookSheet: View {
     private var photoSection: some View {
         Section {
             if let photoData {
-                RecipePhoto(data: photoData, title: recipe.title)
+                RecipePhoto(data: photoData, title: recipe.title, photoLabel: "Your photo of this cook")
                     .frame(height: 200)
                     .frame(maxWidth: .infinity)
                     .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.medium, style: .continuous))
                     .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
                     .transition(.opacity)
-                    .accessibilityHidden(true)
             }
             // PhotosPicker's label closure is Sendable, so read the
             // main-actor state here rather than inside it.

@@ -15,6 +15,7 @@ struct ImportRecipeView: View {
     @State private var draft: RecipeDraft?
     @State private var photoChoice: ImportPhotoChoice?
     @FocusState private var isFieldFocused: Bool
+    @ScaledMetric(relativeTo: .title2) private var iconTileSize: CGFloat = 56
 
     var body: some View {
         NavigationStack {
@@ -23,7 +24,7 @@ struct ImportRecipeView: View {
                     Image(systemName: "link")
                         .font(.title2.weight(.semibold))
                         .foregroundStyle(TagColor.blue.foreground)
-                        .frame(width: 56, height: 56)
+                        .frame(width: iconTileSize, height: iconTileSize)
                         .background(TagColor.blue.background, in: RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous))
                         .accessibilityHidden(true)
 
@@ -31,6 +32,7 @@ struct ImportRecipeView: View {
                         Text("Import from a link")
                             .font(Theme.Fonts.sectionTitle)
                             .foregroundStyle(Theme.Colors.textPrimary)
+                            .accessibilityAddTraits(.isHeader)
                         Text("Paste a link to a recipe. You can also share a page to recipi straight from Safari.")
                             .font(Theme.Fonts.meta)
                             .foregroundStyle(Theme.Colors.textSecondary)
@@ -61,6 +63,7 @@ struct ImportRecipeView: View {
                         if isImporting {
                             ProgressView()
                                 .tint(Theme.Colors.onAccent)
+                                .accessibilityLabel("Importing")
                         } else {
                             Text(draft == nil ? "Import recipe" : "Save recipe")
                         }
@@ -84,6 +87,11 @@ struct ImportRecipeView: View {
             .onChange(of: urlText) {
                 draft = nil
                 photoChoice = nil
+            }
+            .onChange(of: errorMessage) { _, message in
+                if let message {
+                    AccessibilityNotification.Announcement(message).post()
+                }
             }
             .task(id: photoChoice.map { ObjectIdentifier($0) }) {
                 await photoChoice?.load()
@@ -114,8 +122,12 @@ struct ImportRecipeView: View {
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(Theme.Colors.textTertiary)
+                        .frame(minWidth: 44, minHeight: 44)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                // A full 44 pt target without making the field taller.
+                .padding(.vertical, -Theme.Spacing.sm)
                 .accessibilityLabel("Clear link")
             }
         }
@@ -186,8 +198,11 @@ private struct ImportPreview: View {
                             .overlay { ProgressView() }
                             .accessibilityLabel("Loading photo")
                     } else {
-                        RecipePhoto(data: photos.selected?.preview, title: draft.title)
-                            .accessibilityLabel(photos.selected == nil ? "No photo" : "Recipe photo")
+                        if photos.selected == nil {
+                            RecipePhoto(data: nil, title: draft.title)
+                        } else {
+                            RecipePhoto(data: photos.selected?.preview, title: draft.title, photoLabel: "Recipe photo")
+                        }
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous))

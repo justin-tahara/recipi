@@ -18,9 +18,17 @@ public struct FlowLayout: Layout {
         for (subview, position) in zip(subviews, positions) {
             subview.place(
                 at: CGPoint(x: bounds.minX + position.x, y: bounds.minY + position.y),
-                proposal: .unspecified
+                proposal: Self.proposal(for: subview, width: bounds.width)
             )
         }
+    }
+
+    /// Each view at its natural size, unless that's wider than the row: then
+    /// it gets the row's width and wraps (or truncates) to fit, instead of
+    /// running off the edge at large text sizes.
+    private static func proposal(for subview: LayoutSubview, width: CGFloat) -> ProposedViewSize {
+        let natural = subview.sizeThatFits(.unspecified)
+        return natural.width > width ? ProposedViewSize(width: width, height: nil) : .unspecified
     }
 
     private func arrange(width: CGFloat, subviews: Subviews) -> (positions: [CGPoint], size: CGSize) {
@@ -31,7 +39,7 @@ public struct FlowLayout: Layout {
         var widest: CGFloat = 0
 
         for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
+            let size = subview.sizeThatFits(Self.proposal(for: subview, width: width))
             if x > 0, x + size.width > width {
                 x = 0
                 y += rowHeight + spacing

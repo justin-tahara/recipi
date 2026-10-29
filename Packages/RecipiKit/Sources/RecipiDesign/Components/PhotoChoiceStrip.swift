@@ -24,7 +24,7 @@ public struct PhotoChoiceStrip<ID: Hashable>: View {
         self.allowsNone = allowsNone
     }
 
-    private let size: CGFloat = 64
+    @ScaledMetric(relativeTo: .body) private var size: CGFloat = 64
 
     public var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -50,6 +50,7 @@ public struct PhotoChoiceStrip<ID: Hashable>: View {
                     } label: {
                         Image(systemName: "xmark")
                             .font(.body.weight(.semibold))
+                            .accessibilityHidden(true)
                             .foregroundStyle(Theme.Colors.textSecondary)
                             .frame(width: size, height: size)
                             .background(Theme.Colors.fill, in: tileShape)
