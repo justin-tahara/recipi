@@ -1,5 +1,6 @@
 #if DEBUG
 import Foundation
+import RecipiKit
 
 /// Debug-only hooks for the app's unit and UI tests. Launching with
 /// `-ui-testing` (or as the host of the unit tests) swaps the App Group and
@@ -12,6 +13,13 @@ enum TestSupport {
         let process = ProcessInfo.processInfo
         return process.arguments.contains(launchArgument)
             || process.environment["XCTestConfigurationFilePath"] != nil
+    }
+
+    /// UI tests check amounts exactly as the fixture writes them, so they
+    /// pin the units instead of following the simulator's region.
+    static func pinPreferences() {
+        guard ProcessInfo.processInfo.arguments.contains(launchArgument) else { return }
+        UserDefaults.appGroup().setPreference(.asWritten, for: PreferenceKeys.measurements)
     }
 
     /// Routes `URLSession.shared`, which the import sheet uses, through

@@ -22,6 +22,7 @@ struct RecipiApp: App {
         // real store isn't available to them anyway.
         if TestSupport.isActive {
             TestSupport.stubNetwork()
+            TestSupport.pinPreferences()
             return try RecipiStore.makeContainer(inMemory: true)
         }
         #endif
