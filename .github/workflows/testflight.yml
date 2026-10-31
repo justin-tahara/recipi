@@ -59,12 +59,7 @@ jobs:
       # App Store Connect only takes builds from the current SDK, so use the newest
       # released Xcode on the image rather than its default.
       - name: Select Xcode
-        run: |
-          set -euo pipefail
-          XCODE_APP="$(printf '%s\n' /Applications/Xcode_*.app | grep -vi beta | sort -V | tail -1)"
-          echo "Selecting ${XCODE_APP}"
-          sudo xcode-select -s "${XCODE_APP}"
-          xcodebuild -version
+        run: scripts/ci/select-xcode.sh
 
       # Secrets reach the job only as env vars; nothing below echoes them. GitHub also
       # masks them in logs.
