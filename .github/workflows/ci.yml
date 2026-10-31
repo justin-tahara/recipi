@@ -1,13 +1,11 @@
 name: CI
 
-# Three stages, so a PR's checks finish in minutes:
-# - `package` runs the RecipiKit tests on their own, alongside the app build;
-# - `build` compiles the app, extension and test bundles once, for the
-#   Simulator on arm64 only, and hands them on as an artifact;
-# - `test` runs the shards below in parallel on that build, each on its own
-#   runner (free for a public repo).
-# CI uses the same newest released Xcode as testflight.yml, so it tests the
-# toolchain that ships.
+# Parallel jobs, so a PR's checks finish in minutes: the RecipiKit tests, and
+# one job per test shard below, each on its own runner (free for a public
+# repo). Each shard builds the app for itself, arm64 only, while its
+# simulator boots; that's quicker than handing one build around as an
+# artifact. CI uses the same newest released Xcode as testflight.yml, so it
+# tests the toolchain that ships.
 on:
   push:
     branches: [main]
@@ -36,15 +34,34 @@ jobs:
       - name: Test RecipiKit
         run: swift test --package-path Packages/RecipiKit
 
-  build:
-    name: Build for testing
+  test:
+    name: ${{ matrix.name }}
     runs-on: macos-26
-    timeout-minutes: 20
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Everything but the audits, so a new test class runs without a new row.
+          - name: Unit and UI tests
+            only: -skip-testing:RecipiUITests/AccessibilityAuditTests
+          - name: Accessibility audit
+            only: -only-testing:RecipiUITests/AccessibilityAuditTests/testMainScreensPassAccessibilityAudit
+          - name: Accessibility audit (largest text)
+            only: -only-testing:RecipiUITests/AccessibilityAuditTests/testMainScreensPassAccessibilityAuditAtLargestTextSize
     steps:
       - uses: actions/checkout@v7
 
       - name: Select Xcode
         run: scripts/ci/select-xcode.sh
+
+      # Boots in the background while the app builds; the test step waits
+      # for it to finish.
+      - name: Start an iPhone simulator
+        run: |
+          udid="$(scripts/ci/pick-simulator.sh)"
+          echo "SIMULATOR_UDID=${udid}" >> "$GITHUB_ENV"
+          nohup xcrun simctl bootstatus "${udid}" -b > "${RUNNER_TEMP}/boot.log" 2>&1 &
 
       - name: Generate project
         run: |
@@ -66,60 +83,12 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
           | { grep -E --line-buffered 'error:|\*\* TEST BUILD' || true; }
 
-      # A tarball, because artifacts drop the executable bit the apps need.
-      - name: Pack the build
-        run: tar -cf build/products.tar -C build/DerivedData/Build/Products .
-
-      - name: Hand the build to the test jobs
-        uses: actions/upload-artifact@v7
-        with:
-          name: test-build
-          path: build/products.tar
-          retention-days: 1
-
-  test:
-    name: ${{ matrix.name }}
-    needs: build
-    runs-on: macos-26
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # Everything but the audits, so a new test class runs without a new row.
-          - name: Unit and UI tests
-            only: -skip-testing:RecipiUITests/AccessibilityAuditTests
-          - name: Accessibility audit
-            only: -only-testing:RecipiUITests/AccessibilityAuditTests/testMainScreensPassAccessibilityAudit
-          - name: Accessibility audit (largest text)
-            only: -only-testing:RecipiUITests/AccessibilityAuditTests/testMainScreensPassAccessibilityAuditAtLargestTextSize
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Select Xcode
-        run: scripts/ci/select-xcode.sh
-
-      # Booting takes a while, so it starts before the download.
-      - name: Boot an iPhone simulator
-        run: |
-          udid="$(scripts/ci/pick-simulator.sh)"
-          echo "SIMULATOR_UDID=${udid}" >> "$GITHUB_ENV"
-          xcrun simctl boot "${udid}" || true
-
-      - name: Download the build
-        uses: actions/download-artifact@v8
-        with:
-          name: test-build
-          path: build
-
-      - name: Unpack the build
-        run: mkdir -p build/Products && tar -xf build/products.tar -C build/Products
-
       - name: Run tests
         run: |
-          # shellcheck disable=SC2086 # ONLY holds several -only-testing flags
+          xcrun simctl bootstatus "${SIMULATOR_UDID}" -b > /dev/null
+          # shellcheck disable=SC2086 # ONLY holds -only-testing/-skip-testing flags
           xcodebuild test-without-building \
-            -xctestrun "$(find build/Products -maxdepth 1 -name '*.xctestrun' | head -1)" \
+            -xctestrun "$(find build/DerivedData/Build/Products -maxdepth 1 -name '*.xctestrun' | head -1)" \
             -destination "id=${SIMULATOR_UDID}" \
             -resultBundlePath build/Results.xcresult \
             ${ONLY}

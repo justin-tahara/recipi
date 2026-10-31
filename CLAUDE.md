@@ -102,10 +102,10 @@ UI tests launch it with `-ui-testing`; add an `.accessibilityIdentifier` only
 where a test can't find an element by its label.
 
 CI (`.github/workflows/ci.yml`) runs on `macos-26` with the newest released
-Xcode, like TestFlight. The package tests run alongside one arm64-only
-`build-for-testing`, whose products go to three parallel test jobs: every
-test but the audits, and the accessibility audit at each text size (a new
-audit test needs its own row in that job's matrix). CodeQL runs on
+Xcode, like TestFlight. The package tests run alongside three parallel test
+jobs, each building arm64-only while its simulator boots: every test but the
+audits, and the accessibility audit at each text size (a new audit test
+needs its own row in that job's matrix). CodeQL runs on
 `main`, weekly and on demand, not on pull requests (its Swift build takes
 20+ minutes). Docs-only changes skip both.
 
