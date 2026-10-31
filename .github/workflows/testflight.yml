@@ -73,7 +73,7 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
-          APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+          APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID || secrets.APPLE_TEAM_ID }}
         run: |
           missing=0
           for name in ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY; do
@@ -83,7 +83,7 @@ jobs:
             fi
           done
           if ! [[ "${APPLE_TEAM_ID}" =~ ^[A-Z0-9]{10}$ ]]; then
-            echo "::error::Variable APPLE_TEAM_ID must be the 10-character team ID (CLAUDE.md -> TestFlight)"
+            echo "::error::APPLE_TEAM_ID (variable or secret) must be the 10-character team ID (CLAUDE.md -> TestFlight)"
             missing=1
           fi
           exit "${missing}"
@@ -93,7 +93,7 @@ jobs:
       - name: Write the API key and export options
         env:
           ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
-          APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+          APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID || secrets.APPLE_TEAM_ID }}
         run: |
           set -euo pipefail
           umask 077

@@ -122,7 +122,7 @@ public, so keep it this way:
   approval and allows only `main`: `ASC_KEY_ID`, `ASC_ISSUER_ID` and
   `ASC_PRIVATE_KEY` (the whole `.p8`) for an App Store Connect team API key
   with the **Admin** role (cloud signing refuses App Manager keys), used by
-  recipi alone. `APPLE_TEAM_ID` is an environment variable, not a secret (it's
+  recipi alone. `APPLE_TEAM_ID` can be an environment variable or secret (it's
   in every signed app); the job adds it to `ci/ExportOptions-appstore.plist`.
 - **Signing is cloud-managed.** The archive is unsigned,
   `scripts/ci/adhoc-sign-archive.sh` ad-hoc signs each bundle with its
