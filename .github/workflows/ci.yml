@@ -36,7 +36,7 @@ jobs:
   # Every test but the accessibility audits, which run nightly on main and
   # on demand (accessibility-audit.yml). A new test class runs here as is.
   test:
-    name: Unit and UI tests
+    name: iOS
     uses: ./.github/workflows/simulator-tests.yml
     with:
       name: Unit and UI tests
