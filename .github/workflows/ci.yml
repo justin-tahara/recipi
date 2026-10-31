@@ -2,9 +2,8 @@ name: CI
 
 # Parallel jobs, so a PR's checks finish in minutes: the RecipiKit tests, and
 # one job per test shard below, each on its own runner (free for a public
-# repo). Each shard builds the app for itself, arm64 only, while its
-# simulator boots; that's quicker than handing one build around as an
-# artifact. CI uses the same newest released Xcode as testflight.yml, so it
+# repo). Each shard builds the app for itself, arm64 only, then boots its
+# simulator; that's quicker than handing one build around as an artifact. CI uses the same newest released Xcode as testflight.yml, so it
 # tests the toolchain that ships.
 on:
   push:
@@ -55,15 +54,10 @@ jobs:
       - name: Select Xcode
         run: scripts/ci/select-xcode.sh
 
-      # Boots in the background while the app builds; the test step waits
-      # for it to finish.
-      - name: Start an iPhone simulator
-        run: |
-          udid="$(scripts/ci/pick-simulator.sh)"
-          echo "SIMULATOR_UDID=${udid}" >> "$GITHUB_ENV"
-          nohup xcrun simctl bootstatus "${udid}" -b > "${RUNNER_TEMP}/boot.log" 2>&1 &
-
       - name: Generate project
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_CLEANUP: "1"
         run: |
           brew install xcodegen
           xcodegen
@@ -83,9 +77,16 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
           | { grep -E --line-buffered 'error:|\*\* TEST BUILD' || true; }
 
+      # After the build, not during it: on a 3-core runner a booting
+      # simulator slows the build and Homebrew more than it saves.
+      - name: Boot an iPhone simulator
+        run: |
+          udid="$(scripts/ci/pick-simulator.sh)"
+          echo "SIMULATOR_UDID=${udid}" >> "$GITHUB_ENV"
+          xcrun simctl bootstatus "${udid}" -b > /dev/null
+
       - name: Run tests
         run: |
-          xcrun simctl bootstatus "${SIMULATOR_UDID}" -b > /dev/null
           # shellcheck disable=SC2086 # ONLY holds -only-testing/-skip-testing flags
           xcodebuild test-without-building \
             -xctestrun "$(find build/DerivedData/Build/Products -maxdepth 1 -name '*.xctestrun' | head -1)" \

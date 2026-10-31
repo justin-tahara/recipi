@@ -103,7 +103,7 @@ where a test can't find an element by its label.
 
 CI (`.github/workflows/ci.yml`) runs on `macos-26` with the newest released
 Xcode, like TestFlight. The package tests run alongside three parallel test
-jobs, each building arm64-only while its simulator boots: every test but the
+jobs, each building arm64-only and then booting a simulator: every test but the
 audits, and the accessibility audit at each text size (a new audit test
 needs its own row in that job's matrix). CodeQL runs on
 `main`, weekly and on demand, not on pull requests (its Swift build takes
