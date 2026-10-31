@@ -37,6 +37,9 @@ targets:
       path: Recipi/Info.plist
       properties:
         CFBundleDisplayName: recipi
+        # XcodeGen writes 1.0 (1) unless told; TestFlight sets the build number.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         # Only the system's HTTPS, so App Store uploads skip the export
         # compliance question.
         ITSAppUsesNonExemptEncryption: false
@@ -74,6 +77,8 @@ targets:
       path: RecipiShare/Info.plist
       properties:
         CFBundleDisplayName: Save to recipi
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         RecipiAppGroupID: $(RECIPI_APP_GROUP_ID)
         RecipiCloudKitContainerID: $(RECIPI_CLOUDKIT_CONTAINER_ID)
         NSExtension:

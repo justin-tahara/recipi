@@ -103,3 +103,36 @@ where a test can't find an element by its label.
 
 Signing is per developer in `Config/Local.xcconfig` (gitignored). Releases are
 signed with Justin's personal Apple Developer account, never a work account.
+
+`CODE_SIGNING_ALLOWED=NO` builds compile and test, but the app they produce
+has no App Group entitlement and stops at launch outside tests. To run it in
+the Simulator, sign ad hoc instead: `CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual
+DEVELOPMENT_TEAM=`.
+
+## TestFlight
+
+`.github/workflows/testflight.yml` ("Run workflow" on `main`) archives Release
+and uploads it to App Store Connect for the internal testers. The repo is
+public, so keep it this way:
+
+- **Only `workflow_dispatch`, only from `main`, on a GitHub-hosted Mac.**
+  Never a self-hosted runner, `pull_request_target`, or a trigger a fork can
+  start. No artifacts: run logs are public and symbols go to App Store Connect.
+- **Secrets live in the `testflight` environment**, which needs the owner's
+  approval and allows only `main`: `ASC_KEY_ID`, `ASC_ISSUER_ID` and
+  `ASC_PRIVATE_KEY` (the whole `.p8`) for an App Store Connect team API key
+  with the **Admin** role (cloud signing refuses App Manager keys), used by
+  recipi alone. `APPLE_TEAM_ID` is an environment variable, not a secret (it's
+  in every signed app); the job adds it to `ci/ExportOptions-appstore.plist`.
+- **Signing is cloud-managed.** The archive is unsigned,
+  `scripts/ci/adhoc-sign-archive.sh` ad-hoc signs each bundle with its
+  entitlements (resolving the `$(RECIPI_…)` settings) so the export keeps the
+  App Group and iCloud container, then `-exportArchive` signs and uploads. A
+  new extension or entitlements file means updating the script's `TARGETS`.
+- **Versions:** `MARKETING_VERSION` comes from `project.yml`; bump it in a PR
+  for a new App Store version. The build number is the run number
+  (`<run>.<attempt>` on a re-run), and the job fails unless the app and share
+  extension match.
+- **CloudKit:** TestFlight builds use the production environment. Deploy the
+  schema to Production in the CloudKit Console before the first upload and
+  after every model change; it must stay additive from then on.

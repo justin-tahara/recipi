@@ -1,0 +1,189 @@
+name: TestFlight
+
+# "Run workflow" on main builds a Release archive and uploads it to App Store Connect, where
+# it lands in TestFlight for the internal testers (CLAUDE.md -> TestFlight).
+#
+# The repository is public, so:
+# - only people with write access can start it (workflow_dispatch), and only from main;
+# - the App Store Connect API key lives in the `testflight` environment, which also requires
+#   the owner's approval, so a workflow change can't reach the key without it;
+# - it runs on a GitHub-hosted Mac, never a self-hosted runner, and keeps no artifacts
+#   (symbols go to App Store Connect). Logs are public: nothing below prints a secret.
+#
+# Signing is cloud-managed through the API key, so the runner holds no certificate, private
+# key or keychain:
+# 1. archive without signing;
+# 2. ad-hoc sign the archive so it records each target's entitlements (App Group, iCloud);
+# 3. `-exportArchive` signs with the team's cloud-managed Apple Distribution certificate
+#    and uploads (ci/ExportOptions-appstore.plist).
+# The build number is the run number (CFBundleVersion), for the app and the share extension
+# alike; MARKETING_VERSION stays what project.yml says. Nothing is committed.
+on:
+  workflow_dispatch:
+
+# One upload at a time; never cancel a run that may be mid-upload.
+concurrency:
+  group: testflight
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  testflight:
+    name: Archive and upload to TestFlight
+    if: github.ref == 'refs/heads/main'
+    runs-on: macos-26
+    timeout-minutes: 60
+    environment: testflight
+    env:
+      # Re-runs of the same run get "<run>.<attempt>" so App Store Connect never sees a
+      # duplicate build number.
+      BUILD_NUMBER: ${{ github.run_attempt == '1' && github.run_number || format('{0}.{1}', github.run_number, github.run_attempt) }}
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Pick build folders
+        run: |
+          {
+            echo "ARCHIVE_PATH=${RUNNER_TEMP}/Recipi.xcarchive"
+            echo "EXPORT_PATH=${RUNNER_TEMP}/export"
+            echo "EXPORT_OPTIONS=${RUNNER_TEMP}/ExportOptions.plist"
+            echo "ASC_KEY_PATH=${RUNNER_TEMP}/asc/AuthKey.p8"
+          } >> "$GITHUB_ENV"
+
+      # App Store Connect only takes builds from the current SDK, so use the newest
+      # released Xcode on the image rather than its default.
+      - name: Select Xcode
+        run: |
+          set -euo pipefail
+          XCODE_APP="$(printf '%s\n' /Applications/Xcode_*.app | grep -vi beta | sort -V | tail -1)"
+          echo "Selecting ${XCODE_APP}"
+          sudo xcode-select -s "${XCODE_APP}"
+          xcodebuild -version
+
+      # Secrets reach the job only as env vars; nothing below echoes them. GitHub also
+      # masks them in logs.
+      - name: Check secrets are set
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+          APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+        run: |
+          missing=0
+          for name in ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Secret ${name} is not set in the testflight environment (CLAUDE.md -> TestFlight)"
+              missing=1
+            fi
+          done
+          if ! [[ "${APPLE_TEAM_ID}" =~ ^[A-Z0-9]{10}$ ]]; then
+            echo "::error::Variable APPLE_TEAM_ID must be the 10-character team ID (CLAUDE.md -> TestFlight)"
+            missing=1
+          fi
+          exit "${missing}"
+
+      # The API key, written with owner-only permissions and removed by the clean-up step
+      # at the end, pass or fail.
+      - name: Write the API key and export options
+        env:
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+          APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$(dirname "${ASC_KEY_PATH}")"
+          printf '%s\n' "${ASC_PRIVATE_KEY}" > "${ASC_KEY_PATH}"
+          grep -q 'BEGIN PRIVATE KEY' "${ASC_KEY_PATH}" || { echo "::error::ASC_PRIVATE_KEY is not a .p8 private key"; exit 1; }
+          cp ci/ExportOptions-appstore.plist "${EXPORT_OPTIONS}"
+          plutil -insert teamID -string "${APPLE_TEAM_ID}" "${EXPORT_OPTIONS}"
+
+      - name: Generate project
+        run: |
+          brew install xcodegen
+          xcodegen
+
+      # Unsigned on purpose: see scripts/ci/adhoc-sign-archive.sh. The exported app is
+      # signed by the cloud, so no certificate or keychain is needed on the runner.
+      - name: Archive (Release)
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project Recipi.xcodeproj \
+            -scheme Recipi \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath "${ARCHIVE_PATH}" \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CURRENT_PROJECT_VERSION="${BUILD_NUMBER}" \
+          | tee "${RUNNER_TEMP}/archive.log" \
+          | { grep -E --line-buffered 'error:|\*\* ARCHIVE' || true; }
+
+      - name: Ad-hoc sign the archive (records entitlements)
+        run: scripts/ci/adhoc-sign-archive.sh "${ARCHIVE_PATH}"
+
+      - name: Check version and build numbers
+        run: |
+          set -euo pipefail
+          app="${ARCHIVE_PATH}/Products/Applications/Recipi.app"
+          appex="${app}/PlugIns/RecipiShare.appex"
+          version="$(plutil -extract CFBundleShortVersionString raw "${app}/Info.plist")"
+          app_build="$(plutil -extract CFBundleVersion raw "${app}/Info.plist")"
+          appex_version="$(plutil -extract CFBundleShortVersionString raw "${appex}/Info.plist")"
+          appex_build="$(plutil -extract CFBundleVersion raw "${appex}/Info.plist")"
+          echo "Recipi ${version} (${app_build}), RecipiShare ${appex_version} (${appex_build})"
+          if [ "${app_build}" != "${BUILD_NUMBER}" ] || [ "${appex_build}" != "${BUILD_NUMBER}" ] || [ "${appex_version}" != "${version}" ]; then
+            echo "::error::The app and the share extension must both be ${version} (${BUILD_NUMBER})"
+            exit 1
+          fi
+          echo "MARKETING_VERSION=${version}" >> "$GITHUB_ENV"
+
+      # Signs with the cloud-managed distribution certificate and uploads. Needs an Admin
+      # API key: App Manager keys get "Cloud signing permission error".
+      - name: Export and upload to App Store Connect
+        timeout-minutes: 25
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -o pipefail
+          xcodebuild -exportArchive \
+            -archivePath "${ARCHIVE_PATH}" \
+            -exportOptionsPlist "${EXPORT_OPTIONS}" \
+            -exportPath "${EXPORT_PATH}" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "${ASC_KEY_PATH}" \
+            -authenticationKeyID "${ASC_KEY_ID}" \
+            -authenticationKeyIssuerID "${ASC_ISSUER_ID}" \
+          2>&1 | tee "${RUNNER_TEMP}/export.log" \
+          | { grep -vE 'DVTDeveloperAccount|IDEDistributionLogging' || true; }
+
+      - name: Remove the API key and the archive
+        if: always()
+        run: |
+          rm -rf "${RUNNER_TEMP}/asc" "${ARCHIVE_PATH}" "${EXPORT_PATH}" "${EXPORT_OPTIONS}"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### TestFlight upload"
+            echo ""
+            echo "Build **${MARKETING_VERSION:-?} (${BUILD_NUMBER})**."
+            errors="$(grep -hE 'error:' "${RUNNER_TEMP}/archive.log" "${RUNNER_TEMP}/export.log" 2>/dev/null | sort -u | head -40 || true)"
+            if [ -n "${errors}" ]; then
+              echo ""
+              echo "**Errors:**"
+              echo '```'
+              echo "${errors}"
+              echo '```'
+            fi
+            echo ""
+            echo "Processing takes a few minutes after the upload; TestFlight notifies testers when it's ready."
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- TestFlight builds from CI (.github/workflows/testflight.yml): sign with the team's
+	     cloud-managed distribution certificate and upload to App Store Connect. The job adds
+	     teamID from the APPLE_TEAM_ID variable, so forks can upload under their own team. -->
+	<key>method</key>
+	<string>app-store-connect</string>
+	<key>destination</key>
+	<string>upload</string>
+	<key>signingStyle</key>
+	<string>automatic</string>
+	<!-- TestFlight and App Store builds sync with CloudKit's production environment. -->
+	<key>iCloudContainerEnvironment</key>
+	<string>Production</string>
+	<!-- CI sets CURRENT_PROJECT_VERSION from the run number; the upload must not renumber it. -->
+	<key>manageAppVersionAndBuildNumber</key>
+	<false/>
+	<key>uploadSymbols</key>
+	<true/>
+	<key>stripSwiftSymbols</key>
+	<true/>
+</dict>
+</plist>
