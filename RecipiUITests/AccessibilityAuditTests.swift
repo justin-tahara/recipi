@@ -147,6 +147,17 @@ final class AccessibilityAuditTests: XCTestCase {
         // samples the screen's pixels, so text caught mid-fade reads as
         // too faint (seen on "No recipes yet" and the filter row at AX5).
         Thread.sleep(forTimeInterval: 1.5)
+        do {
+            try performAudit(app, screen: screen)
+        } catch let error as NSError where Self.isAuditTimeout(error) {
+            // A cold CI simulator can run past the audit's time limit. A
+            // timeout reports no issues, so one more try hides nothing.
+            try performAudit(app, screen: screen)
+        }
+    }
+
+    @MainActor
+    private func performAudit(_ app: XCUIApplication, screen: String) throws {
         try app.performAccessibilityAudit(for: auditTypes) { issue in
             if self.isKnownFinding(issue, on: screen) {
                 self.knownIssues.append("\(screen): \(Self.describe(issue))")
@@ -156,6 +167,11 @@ final class AccessibilityAuditTests: XCTestCase {
             // Handled here: reported together at the end of the test.
             return true
         }
+    }
+
+    /// "Audit failed to complete in time".
+    private static func isAuditTimeout(_ error: NSError) -> Bool {
+        error.domain == "com.apple.xcode.xctest.accessibilityAudit" && error.code == -56
     }
 
     /// Findings the audit reports without saying which element they're on,

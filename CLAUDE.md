@@ -101,6 +101,14 @@ uses an in-memory store and serves imports from the fixture pages in
 UI tests launch it with `-ui-testing`; add an `.accessibilityIdentifier` only
 where a test can't find an element by its label.
 
+CI (`.github/workflows/ci.yml`) runs on `macos-26` with the newest released
+Xcode, like TestFlight. The package tests run alongside three parallel test
+jobs, each building arm64-only and then booting a simulator: every test but the
+audits, and the accessibility audit at each text size (a new audit test
+needs its own row in that job's matrix). CodeQL runs on
+`main`, weekly and on demand, not on pull requests (its Swift build takes
+20+ minutes). Docs-only changes skip both.
+
 Signing is per developer in `Config/Local.xcconfig` (gitignored). Releases are
 signed with Justin's personal Apple Developer account, never a work account.
 

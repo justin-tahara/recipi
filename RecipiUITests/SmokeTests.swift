@@ -70,7 +70,9 @@ final class SmokeTests: XCTestCase {
         let addToList = app.buttons["Add to grocery list"].firstMatch
         XCTAssertTrue(addToList.waitForExistence(timeout: timeout))
         addToList.tap()
-        XCTAssertTrue(app.staticTexts["Added 4 items to Groceries"].waitForExistence(timeout: timeout))
+        // No check on the "Added 4 items" toast: on iOS 26 it isn't in the
+        // accessibility tree UI tests read (VoiceOver gets its announcement).
+        // The grocery list below shows the items arrived.
 
         app.tabBars.buttons["Groceries"].tap()
         let items = app.buttons.matching(identifier: "grocery.item")

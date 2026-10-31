@@ -1,90 +1,105 @@
 name: CI
 
+# Parallel jobs, so a PR's checks finish in minutes: the RecipiKit tests, and
+# one job per test shard below, each on its own runner (free for a public
+# repo). Each shard builds the app for itself, arm64 only, then boots its
+# simulator; that's quicker than handing one build around as an artifact. CI uses the same newest released Xcode as testflight.yml, so it
+# tests the toolchain that ships.
 on:
   push:
     branches: [main]
+    paths-ignore: ["docs/**", "**.md", "LICENSE", ".github/ISSUE_TEMPLATE/**"]
   pull_request:
+    paths-ignore: ["docs/**", "**.md", "LICENSE", ".github/ISSUE_TEMPLATE/**"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
-  build-and-test:
-    runs-on: macos-15
-    timeout-minutes: 30
+  package:
+    name: RecipiKit tests
+    runs-on: macos-26
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
 
-      - name: Show Xcode version
-        run: xcodebuild -version
+      - name: Select Xcode
+        run: scripts/ci/select-xcode.sh
 
       - name: Test RecipiKit
         run: swift test --package-path Packages/RecipiKit
 
-      - name: Install XcodeGen
-        run: brew install xcodegen
+  test:
+    name: ${{ matrix.name }}
+    runs-on: macos-26
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Everything but the audits, so a new test class runs without a new row.
+          - name: Unit and UI tests
+            only: -skip-testing:RecipiUITests/AccessibilityAuditTests
+          - name: Accessibility audit
+            only: -only-testing:RecipiUITests/AccessibilityAuditTests/testMainScreensPassAccessibilityAudit
+          - name: Accessibility audit (largest text)
+            only: -only-testing:RecipiUITests/AccessibilityAuditTests/testMainScreensPassAccessibilityAuditAtLargestTextSize
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Select Xcode
+        run: scripts/ci/select-xcode.sh
 
       - name: Generate project
-        run: xcodegen
-
-      - name: Build app and share extension
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_CLEANUP: "1"
         run: |
-          xcodebuild build \
-            -project Recipi.xcodeproj \
-            -scheme Recipi \
-            -destination 'generic/platform=iOS Simulator' \
-            CODE_SIGNING_ALLOWED=NO
+          brew install xcodegen
+          xcodegen
 
-      # Device names change with each Xcode, so pick an available iPhone on
-      # the newest iOS runtime this SDK can run, and boot it while we build.
-      - name: Pick an iPhone simulator
+      # arm64 only: the runners are Apple silicon, and a generic Simulator
+      # build would compile everything a second time for x86_64.
+      - name: Build app, extension and tests
         run: |
-          sdk_version=$(xcrun --sdk iphonesimulator --show-sdk-version)
-          udid=$(xcrun simctl list devices available -j | python3 -c '
-          import json, re, sys
-          sdk = tuple(int(part) for part in sys.argv[1].split("."))
-          candidates = []
-          for runtime, devices in json.load(sys.stdin)["devices"].items():
-              match = re.search(r"iOS-(\d+)-(\d+)", runtime)
-              if not match:
-                  continue
-              version = (int(match.group(1)), int(match.group(2)))
-              if version > sdk:
-                  continue
-              for device in devices:
-                  if device["name"].startswith("iPhone"):
-                      candidates.append((version, -len(device["name"]), device["name"], device["udid"]))
-          if not candidates:
-              sys.exit("No available iPhone simulator for iOS " + sys.argv[1])
-          version, _, name, udid = max(candidates)
-          print(f"Using {name} (iOS {version[0]}.{version[1]})", file=sys.stderr)
-          print(udid)
-          ' "$sdk_version")
-          echo "SIMULATOR_UDID=$udid" >> "$GITHUB_ENV"
-          xcrun simctl boot "$udid" || true
-
-      - name: Build tests
-        run: |
+          set -o pipefail
           xcodebuild build-for-testing \
             -project Recipi.xcodeproj \
             -scheme Recipi \
-            -destination "id=$SIMULATOR_UDID" \
-            CODE_SIGNING_ALLOWED=NO
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/DerivedData \
+            ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            CODE_SIGNING_ALLOWED=NO \
+          | { grep -E --line-buffered 'error:|\*\* TEST BUILD' || true; }
 
-      - name: Run unit and UI tests on the iOS Simulator
+      # After the build, not during it: on a 3-core runner a booting
+      # simulator slows the build and Homebrew more than it saves.
+      - name: Boot an iPhone simulator
         run: |
+          udid="$(scripts/ci/pick-simulator.sh)"
+          echo "SIMULATOR_UDID=${udid}" >> "$GITHUB_ENV"
+          xcrun simctl bootstatus "${udid}" -b > /dev/null
+
+      - name: Run tests
+        run: |
+          # shellcheck disable=SC2086 # ONLY holds -only-testing/-skip-testing flags
           xcodebuild test-without-building \
-            -project Recipi.xcodeproj \
-            -scheme Recipi \
-            -destination "id=$SIMULATOR_UDID" \
-            -resultBundlePath build/RecipiTests.xcresult \
-            CODE_SIGNING_ALLOWED=NO
+            -xctestrun "$(find build/DerivedData/Build/Products -maxdepth 1 -name '*.xctestrun' | head -1)" \
+            -destination "id=${SIMULATOR_UDID}" \
+            -resultBundlePath build/Results.xcresult \
+            ${ONLY}
+        env:
+          ONLY: ${{ matrix.only }}
 
       - name: Upload test results
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: RecipiTests.xcresult
-          path: build/RecipiTests.xcresult
+          name: ${{ matrix.name }}.xcresult
+          path: build/Results.xcresult
           if-no-files-found: ignore
