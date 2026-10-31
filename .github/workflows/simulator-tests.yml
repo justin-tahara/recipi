@@ -1,0 +1,80 @@
+name: Simulator tests
+
+# Builds the app, extension and test bundles and runs some of the tests on an
+# iPhone simulator. Called by ci.yml (every test but the accessibility audits)
+# and accessibility-audit.yml (the audits, nightly and on demand).
+on:
+  workflow_call:
+    inputs:
+      name:
+        description: "Job name, also used for the result bundle on failure"
+        type: string
+        required: true
+      only:
+        description: "-only-testing / -skip-testing flags for xcodebuild"
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ inputs.name }}
+    runs-on: macos-26
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Select Xcode
+        run: scripts/ci/select-xcode.sh
+
+      - name: Generate project
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_CLEANUP: "1"
+        run: |
+          brew install xcodegen
+          xcodegen
+
+      # arm64 only: the runners are Apple silicon, and a generic Simulator
+      # build would compile everything a second time for x86_64.
+      - name: Build app, extension and tests
+        run: |
+          set -o pipefail
+          xcodebuild build-for-testing \
+            -project Recipi.xcodeproj \
+            -scheme Recipi \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/DerivedData \
+            ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            CODE_SIGNING_ALLOWED=NO \
+          | { grep -E --line-buffered 'error:|\*\* TEST BUILD' || true; }
+
+      # After the build, not during it: on a 3-core runner a booting
+      # simulator slows the build and Homebrew more than it saves.
+      - name: Boot an iPhone simulator
+        run: |
+          udid="$(scripts/ci/pick-simulator.sh)"
+          echo "SIMULATOR_UDID=${udid}" >> "$GITHUB_ENV"
+          xcrun simctl bootstatus "${udid}" -b > /dev/null
+
+      - name: Run tests
+        run: |
+          # shellcheck disable=SC2086 # ONLY holds -only-testing/-skip-testing flags
+          xcodebuild test-without-building \
+            -xctestrun "$(find build/DerivedData/Build/Products -maxdepth 1 -name '*.xctestrun' | head -1)" \
+            -destination "id=${SIMULATOR_UDID}" \
+            -resultBundlePath build/Results.xcresult \
+            ${ONLY}
+        env:
+          ONLY: ${{ inputs.only }}
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.name }}.xcresult
+          path: build/Results.xcresult
+          if-no-files-found: ignore

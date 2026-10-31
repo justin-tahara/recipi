@@ -1,10 +1,10 @@
 name: CI
 
-# Parallel jobs, so a PR's checks finish in minutes: the RecipiKit tests, and
-# one job per test shard below, each on its own runner (free for a public
-# repo). Each shard builds the app for itself, arm64 only, then boots its
-# simulator; that's quicker than handing one build around as an artifact. CI uses the same newest released Xcode as testflight.yml, so it
-# tests the toolchain that ships.
+# Two parallel jobs, so a PR's checks finish in minutes: the RecipiKit tests,
+# and the app's unit and UI tests on a simulator (simulator-tests.yml, arm64
+# only). The accessibility audits run nightly instead (accessibility-audit.yml).
+# CI uses the same newest released Xcode as testflight.yml, so it tests the
+# toolchain that ships.
 on:
   push:
     branches: [main]
@@ -33,73 +33,11 @@ jobs:
       - name: Test RecipiKit
         run: swift test --package-path Packages/RecipiKit
 
+  # Every test but the accessibility audits, which run nightly on main and
+  # on demand (accessibility-audit.yml). A new test class runs here as is.
   test:
-    name: ${{ matrix.name }}
-    runs-on: macos-26
-    timeout-minutes: 25
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # Everything but the audits, so a new test class runs without a new row.
-          - name: Unit and UI tests
-            only: -skip-testing:RecipiUITests/AccessibilityAuditTests
-          - name: Accessibility audit
-            only: -only-testing:RecipiUITests/AccessibilityAuditTests/testMainScreensPassAccessibilityAudit
-          - name: Accessibility audit (largest text)
-            only: -only-testing:RecipiUITests/AccessibilityAuditTests/testMainScreensPassAccessibilityAuditAtLargestTextSize
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Select Xcode
-        run: scripts/ci/select-xcode.sh
-
-      - name: Generate project
-        env:
-          HOMEBREW_NO_AUTO_UPDATE: "1"
-          HOMEBREW_NO_INSTALL_CLEANUP: "1"
-        run: |
-          brew install xcodegen
-          xcodegen
-
-      # arm64 only: the runners are Apple silicon, and a generic Simulator
-      # build would compile everything a second time for x86_64.
-      - name: Build app, extension and tests
-        run: |
-          set -o pipefail
-          xcodebuild build-for-testing \
-            -project Recipi.xcodeproj \
-            -scheme Recipi \
-            -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath build/DerivedData \
-            ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \
-            COMPILER_INDEX_STORE_ENABLE=NO \
-            CODE_SIGNING_ALLOWED=NO \
-          | { grep -E --line-buffered 'error:|\*\* TEST BUILD' || true; }
-
-      # After the build, not during it: on a 3-core runner a booting
-      # simulator slows the build and Homebrew more than it saves.
-      - name: Boot an iPhone simulator
-        run: |
-          udid="$(scripts/ci/pick-simulator.sh)"
-          echo "SIMULATOR_UDID=${udid}" >> "$GITHUB_ENV"
-          xcrun simctl bootstatus "${udid}" -b > /dev/null
-
-      - name: Run tests
-        run: |
-          # shellcheck disable=SC2086 # ONLY holds -only-testing/-skip-testing flags
-          xcodebuild test-without-building \
-            -xctestrun "$(find build/DerivedData/Build/Products -maxdepth 1 -name '*.xctestrun' | head -1)" \
-            -destination "id=${SIMULATOR_UDID}" \
-            -resultBundlePath build/Results.xcresult \
-            ${ONLY}
-        env:
-          ONLY: ${{ matrix.only }}
-
-      - name: Upload test results
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ matrix.name }}.xcresult
-          path: build/Results.xcresult
-          if-no-files-found: ignore
+    name: Unit and UI tests
+    uses: ./.github/workflows/simulator-tests.yml
+    with:
+      name: Unit and UI tests
+      only: -skip-testing:RecipiUITests/AccessibilityAuditTests

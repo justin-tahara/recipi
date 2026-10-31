@@ -39,7 +39,9 @@ something (tag colors, the paprika accent on actions, callouts).
 
 `RecipiUITests/AccessibilityAuditTests.swift` runs Xcode's accessibility
 audit on the main screens, at the default text size and the largest one, and
-`ContrastTests` checks text colors against WCAG AA (4.5:1). Keep new screens
+`ContrastTests` checks text colors against WCAG AA (4.5:1). The audit runs
+nightly on `main`, not on PRs, so run it on the branch before merging UI work
+(`gh workflow run accessibility-audit.yml --ref <branch>`). Keep new screens
 passing both:
 
 - Give icon-only buttons a label, hide decorative images, and combine a row
@@ -102,12 +104,13 @@ UI tests launch it with `-ui-testing`; add an `.accessibilityIdentifier` only
 where a test can't find an element by its label.
 
 CI (`.github/workflows/ci.yml`) runs on `macos-26` with the newest released
-Xcode, like TestFlight. The package tests run alongside three parallel test
-jobs, each building arm64-only and then booting a simulator: every test but the
-audits, and the accessibility audit at each text size (a new audit test
-needs its own row in that job's matrix). CodeQL runs on
-`main`, weekly and on demand, not on pull requests (its Swift build takes
-20+ minutes). Docs-only changes skip both.
+Xcode, like TestFlight. The package tests run alongside every app test but
+the accessibility audits, built arm64-only on a simulator by the reusable
+`simulator-tests.yml`. The audits (`accessibility-audit.yml`) run nightly on
+`main` and on demand, one job per text size; a new audit test needs its own
+row in that matrix. CodeQL runs on `main`, weekly and on demand, not on pull
+requests (its Swift build takes 20+ minutes). Docs-only changes skip CI and
+CodeQL.
 
 Signing is per developer in `Config/Local.xcconfig` (gitignored). Releases are
 signed with Justin's personal Apple Developer account, never a work account.
