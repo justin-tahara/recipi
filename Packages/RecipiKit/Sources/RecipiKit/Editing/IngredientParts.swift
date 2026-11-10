@@ -18,11 +18,13 @@ public struct IngredientParts: Sendable, Equatable {
 
     /// Splits a line with `IngredientParser`. A unit is only split off when
     /// the parser recognises it, so "1 (14 oz) can tomatoes" keeps
-    /// "(14 oz) can tomatoes" as its name.
+    /// "(14 oz) can tomatoes" as its name. A line with its amount after the
+    /// item ("砂糖 大さじ2") stays whole as the name, since joining the parts
+    /// would put the amount first.
     public init(parsing line: String) {
         let text = line.trimmingCharacters(in: .whitespacesAndNewlines)
         let parsed = IngredientParser.parse(text)
-        guard parsed.quantity != nil, text.hasSuffix(parsed.remainder) else {
+        guard parsed.quantity != nil, parsed.lead.isEmpty, text.hasSuffix(parsed.remainder) else {
             self.init(name: text)
             return
         }

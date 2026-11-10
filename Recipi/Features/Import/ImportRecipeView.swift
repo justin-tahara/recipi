@@ -105,7 +105,13 @@ struct ImportRecipeView: View {
             Image(systemName: "globe")
                 .foregroundStyle(Theme.Colors.textTertiary)
                 .accessibilityHidden(true)
-            TextField("https://", text: $urlText)
+            // A prompt in the tertiary text color: the system placeholder
+            // gray doesn't pass AA contrast.
+            TextField(
+                "https://",
+                text: $urlText,
+                prompt: Text("https://").foregroundStyle(Theme.Colors.textTertiary)
+            )
                 .keyboardType(.URL)
                 .textContentType(.URL)
                 .textInputAutocapitalization(.never)

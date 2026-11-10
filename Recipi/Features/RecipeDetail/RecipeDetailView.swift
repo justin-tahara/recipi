@@ -328,7 +328,7 @@ struct RecipeDetailView: View {
                 .fontWeight(.bold)
                 .foregroundStyle(Theme.Colors.accent)
                 .accessibilityHidden(true)
-            (Text(parts.amount).fontWeight(.semibold) + Text(parts.rest))
+            (Text(parts.lead) + Text(parts.amount).fontWeight(.semibold) + Text(parts.rest))
                 .foregroundStyle(Theme.Colors.textPrimary)
                 .contentTransition(.numericText())
                 .multilineTextAlignment(.leading)

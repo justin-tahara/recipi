@@ -53,6 +53,11 @@ passing both:
   and side-by-side layouts stack when `dynamicTypeSize.isAccessibilitySize`.
 - A text color is a `Theme.Colors` token or a `TagColor` foreground on its
   background, which the tests cover. Changing a value means rechecking them.
+- A text field's placeholder uses a `prompt:` in `Theme.Colors.textTertiary`;
+  the system placeholder gray fails AA contrast.
+- The audit counts a contrast finding only when a second look a few seconds
+  later finds it again, since the nightly runner sometimes samples text
+  mid-animation. Every other finding counts the first time.
 
 ## SwiftData + CloudKit rules
 

@@ -46,9 +46,9 @@ public struct RecipeText: Codable, Sendable, Equatable {
 ///
 /// - Each section heading is translated once, so every line under it keeps
 ///   the same (translated) heading and the sections stay grouped.
-/// - An ingredient's leading amount ("2", "1 1/2", "350g") is kept exactly
-///   as written and only the words after it are translated, so scaling and
-///   unit conversion read the same amount after translation.
+/// - An ingredient's leading amount ("2", "1 1/2", "1,5", "350g") is kept
+///   exactly as written and only the words after it are translated, so
+///   scaling and unit conversion read the same amount after translation.
 /// - A piece the translator didn't return keeps its original text.
 public struct RecipeTranslationPlan: Sendable, Equatable {
     /// One piece of text to translate, with an id to match its translation
@@ -144,14 +144,15 @@ public struct RecipeTranslationPlan: Sendable, Equatable {
     }
 
     /// Splits "2 cuillères à soupe de farine" into ("2", "cuillères à soupe
-    /// de farine") and "350g Mehl" into ("350g", "Mehl"). Nil when the line
-    /// has no leading amount, or the amount runs into other text as in
-    /// "1,5 kg" (a decimal comma the parser doesn't read), so the whole line
-    /// is translated instead.
+    /// de farine"), "350g Mehl" into ("350g", "Mehl") and "1,5 kg de bœuf"
+    /// into ("1,5", "kg de bœuf"). Nil when the line has no leading amount
+    /// (Japanese lines put it after the item, as in "醤油 大さじ2"), or the
+    /// amount runs into other text as in "2個", so the whole line is
+    /// translated instead.
     static func splitAmount(_ line: String) -> (amount: String, rest: String)? {
         let text = line.trimmingCharacters(in: .whitespacesAndNewlines)
         let parsed = IngredientParser.parse(text)
-        guard parsed.quantity != nil, text.hasSuffix(parsed.remainder) else { return nil }
+        guard parsed.quantity != nil, parsed.lead.isEmpty, text.hasSuffix(parsed.remainder) else { return nil }
 
         var amount = String(text.dropLast(parsed.remainder.count))
         var rest = Substring(parsed.remainder)
