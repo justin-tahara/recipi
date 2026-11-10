@@ -11,7 +11,10 @@ import XCTest
 final class AccessibilityAuditTests: XCTestCase {
     /// Matches `FixturePages.lemonSpaghettiURL` in the app target.
     private let fixtureURL = "https://fixtures.recipi.test/lemon-spaghetti"
-    private let timeout: TimeInterval = 10
+    /// Generous, because the nightly runner's simulator can stall for
+    /// several seconds between steps (seen opening the import sheet, saving
+    /// and starting cooking mode). A wait that succeeds returns at once.
+    private let timeout: TimeInterval = 30
 
     /// Issues found so far, one line each.
     private var issues: [String] = []
@@ -147,26 +150,84 @@ final class AccessibilityAuditTests: XCTestCase {
         // samples the screen's pixels, so text caught mid-fade reads as
         // too faint (seen on "No recipes yet" and the filter row at AX5).
         Thread.sleep(forTimeInterval: 1.5)
-        do {
-            try performAudit(app, screen: screen)
-        } catch let error as NSError where Self.isAuditTimeout(error) {
-            // A cold CI simulator can run past the audit's time limit. A
-            // timeout reports no issues, so one more try hides nothing.
-            try performAudit(app, screen: screen)
+        let found = try auditWithRetry(app, screen: screen, types: auditTypes)
+        let contrast = found.filter { $0.isContrast }
+        var confirmed = found.filter { !$0.isContrast }
+
+        // A contrast finding is a pixel sample, and on the nightly runner a
+        // slow sheet or launch animation sometimes leaves text half faded
+        // when it's taken: the same text passed on other nights with no
+        // change to the app ("No recipes yet", Settings' "Measurements"
+        // header). So a contrast finding counts only if a second look, after
+        // a longer wait, finds it again. A real problem is there both times.
+        if !contrast.isEmpty {
+            Thread.sleep(forTimeInterval: 3)
+            let again = try auditWithRetry(app, screen: screen, types: .contrast).filter { $0.isContrast }
+            for finding in contrast {
+                if again.contains(where: { $0.matches(finding) }) {
+                    confirmed.append(finding)
+                } else {
+                    print("Accessibility audit: \(screen): contrast finding not seen on a second look, not counted: \(finding.line)")
+                }
+            }
+        }
+        issues += confirmed.map { "\(screen): \($0.line)" }
+    }
+
+    /// One audit finding, kept so a second look can be matched against it.
+    private struct Finding {
+        let line: String
+        let isContrast: Bool
+        /// The element's label and rounded frame, or nil when the audit
+        /// didn't say which element it's on.
+        let elementKey: String?
+
+        func matches(_ other: Finding) -> Bool {
+            elementKey == other.elementKey
         }
     }
 
     @MainActor
-    private func performAudit(_ app: XCUIApplication, screen: String) throws {
-        try app.performAccessibilityAudit(for: auditTypes) { issue in
+    private func auditWithRetry(_ app: XCUIApplication, screen: String, types: XCUIAccessibilityAuditType) throws -> [Finding] {
+        do {
+            return try performAudit(app, screen: screen, types: types)
+        } catch let error as NSError where Self.isAuditTimeout(error) {
+            // A cold CI simulator can run past the audit's time limit. A
+            // timeout reports no issues, so one more try hides nothing.
+            return try performAudit(app, screen: screen, types: types)
+        }
+    }
+
+    @MainActor
+    private func performAudit(_ app: XCUIApplication, screen: String, types: XCUIAccessibilityAuditType) throws -> [Finding] {
+        var found: [Finding] = []
+        var known: [String] = []
+        try app.performAccessibilityAudit(for: types) { issue in
             if self.isKnownFinding(issue, on: screen) {
-                self.knownIssues.append("\(screen): \(Self.describe(issue))")
+                known.append("\(screen): \(Self.describe(issue))")
             } else if !self.isKnownFalsePositive(issue, on: screen, in: app) {
-                self.issues.append("\(screen): \(Self.describe(issue))")
+                found.append(Finding(
+                    line: Self.describe(issue),
+                    isContrast: issue.auditType.contains(.contrast),
+                    elementKey: Self.elementKey(of: issue)
+                ))
             }
             // Handled here: reported together at the end of the test.
             return true
         }
+        // The second look only checks contrast, so known findings are
+        // logged from the first one alone.
+        if types == auditTypes {
+            knownIssues += known
+        }
+        return found
+    }
+
+    @MainActor
+    private static func elementKey(of issue: XCUIAccessibilityAuditIssue) -> String? {
+        guard let element = issue.element else { return nil }
+        let frame = element.frame
+        return "\(element.label)@\(Int(frame.minX.rounded())),\(Int(frame.minY.rounded()))"
     }
 
     /// "Audit failed to complete in time".
