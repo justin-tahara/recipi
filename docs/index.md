@@ -2,7 +2,7 @@
 title: recipi
 ---
 
-A free, open-source recipe app for iPhone and iPad. Save recipes from any
+A free, open-source recipe app for iPhone. Save recipes from any
 website, keep them in one searchable library, and cook from them one step at
 a time.
 

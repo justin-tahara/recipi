@@ -82,8 +82,7 @@ recipi is made by one person who wanted a recipe app that felt good to use and d
 
 These are GitHub Pages built from `docs/` on `main`, which still has to be
 turned on: Settings → Pages → Deploy from a branch → `main`, `/docs`. Check
-all three load before submitting. (The Pages copy says "iPhone and iPad";
-fine for now since iPad is coming, or trim it to iPhone.)
+all three load before submitting.
 
 ## App Privacy
 
