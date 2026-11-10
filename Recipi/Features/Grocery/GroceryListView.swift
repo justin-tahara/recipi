@@ -96,7 +96,13 @@ struct GroceryListView: View {
                 .foregroundStyle(Theme.Colors.accent)
                 .frame(width: iconWidth)
                 .accessibilityHidden(true)
-            TextField("Add an item", text: $newItemText)
+            // The system placeholder gray is too faint to read (about 2.5:1),
+            // so the prompt uses the tertiary text color, which passes AA.
+            TextField(
+                "Add an item",
+                text: $newItemText,
+                prompt: Text("Add an item").foregroundStyle(Theme.Colors.textTertiary)
+            )
                 .foregroundStyle(Theme.Colors.textPrimary)
                 .onSubmit(addItem)
                 .submitLabel(.done)
