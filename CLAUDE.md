@@ -112,6 +112,14 @@ row in that matrix. CodeQL runs on `main`, weekly and on demand, not on pull
 requests (its Swift build takes 20+ minutes). Docs-only changes skip CI and
 CodeQL.
 
+App Store screenshots come from `RecipiUITests/AppStoreScreenshotTests.swift`,
+which launches with `-ui-testing -sample-library` (the made-up recipes and
+drawn photos in `Recipi/App/SampleLibrary.swift`) and saves each screen as
+a kept attachment. It's skipped on PRs; `app-store-screenshots.yml` runs it
+on demand on a 6.9-inch iPhone with a clean status bar and uploads the
+`.xcresult` (no secrets, only sample content). Rerun it after UI changes;
+the listing text is in `docs/app-store-listing.md`.
+
 Signing is per developer in `Config/Local.xcconfig` (gitignored). Releases are
 signed with Justin's personal Apple Developer account, never a work account.
 

@@ -1,8 +1,9 @@
 name: Simulator tests
 
 # Builds the app, extension and test bundles and runs some of the tests on an
-# iPhone simulator. Called by ci.yml (every test but the accessibility audits)
-# and accessibility-audit.yml (the audits, nightly and on demand).
+# iPhone simulator. Called by ci.yml (every test but the accessibility audits
+# and the screenshots), accessibility-audit.yml (the audits, nightly and on
+# demand) and app-store-screenshots.yml (on demand).
 on:
   workflow_call:
     inputs:
@@ -14,6 +15,10 @@ on:
         description: "-only-testing / -skip-testing flags for xcodebuild"
         type: string
         required: true
+      screenshots:
+        description: "Use a 6.9-inch iPhone with a clean status bar, and keep the result bundle even when the tests pass"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -54,11 +59,23 @@ jobs:
 
       # After the build, not during it: on a 3-core runner a booting
       # simulator slows the build and Homebrew more than it saves.
+      # App Store Connect takes 6.9-inch iPhone screenshots (Pro Max).
       - name: Boot an iPhone simulator
         run: |
-          udid="$(scripts/ci/pick-simulator.sh)"
+          udid="$(scripts/ci/pick-simulator.sh "${NAME_CONTAINS}")"
           echo "SIMULATOR_UDID=${udid}" >> "$GITHUB_ENV"
           xcrun simctl bootstatus "${udid}" -b > /dev/null
+        env:
+          NAME_CONTAINS: ${{ inputs.screenshots && 'Pro Max' || '' }}
+
+      - name: Set a clean status bar
+        if: inputs.screenshots
+        run: |
+          xcrun simctl ui "${SIMULATOR_UDID}" appearance light
+          xcrun simctl status_bar "${SIMULATOR_UDID}" override \
+            --time 9:41 --dataNetwork wifi --wifiMode active --wifiBars 3 \
+            --cellularMode active --cellularBars 4 \
+            --batteryState charged --batteryLevel 100
 
       - name: Run tests
         run: |
@@ -72,7 +89,7 @@ jobs:
           ONLY: ${{ inputs.only }}
 
       - name: Upload test results
-        if: failure()
+        if: failure() || (success() && inputs.screenshots)
         uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.name }}.xcresult

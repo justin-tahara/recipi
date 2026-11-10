@@ -3,3 +3,5 @@
 title: recipi
 description: A free, open-source recipe app for iPhone and iPad.
 theme: jekyll-theme-minimal
+# Working notes for the App Store listing, not a page for the site.
+exclude: [app-store-listing.md]
