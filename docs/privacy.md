@@ -6,7 +6,7 @@ title: Privacy policy
 
 **Effective October 29, 2026**
 
-recipi is a free, open-source recipe app for iPhone and iPad, made by
+recipi is a free, open-source recipe app for iPhone, made by
 Justin Tahara. This policy is short because recipi collects nothing.
 
 ## The short version

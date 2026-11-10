@@ -23,6 +23,19 @@ struct FixtureImportTests {
         #expect(draft.imageURL == nil)
     }
 
+    /// The page the App Store screenshots import, with its drawn photos.
+    @Test func importsTheScreenshotPageAndItsPhotos() async throws {
+        let draft = try await importer.importRecipe(from: FixturePages.sheetPanGnocchiURL)
+        #expect(draft.title == "Sheet Pan Gnocchi with Cherry Tomatoes")
+        #expect(draft.ingredients.count == 7)
+        #expect(draft.steps.count == 4)
+        #expect(Set(draft.imageCandidates) == Set(FixturePages.sheetPanGnocchiPhotoURLs))
+        for url in FixturePages.sheetPanGnocchiPhotoURLs {
+            let photo = await importer.fetchPhoto(at: url)
+            #expect(photo != nil, "No photo at \(url)")
+        }
+    }
+
     @Test func otherLinksGetAnEmptyPage() async {
         await #expect(throws: RecipeImportError.self) {
             try await importer.importRecipe(from: URL(string: "https://example.com/not-a-fixture")!)

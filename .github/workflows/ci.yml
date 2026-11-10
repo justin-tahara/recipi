@@ -34,10 +34,14 @@ jobs:
         run: swift test --package-path Packages/RecipiKit
 
   # Every test but the accessibility audits, which run nightly on main and
-  # on demand (accessibility-audit.yml). A new test class runs here as is.
+  # on demand (accessibility-audit.yml), and the App Store screenshots, which
+  # run on demand (app-store-screenshots.yml). A new test class runs here as
+  # is.
   test:
     name: iOS
     uses: ./.github/workflows/simulator-tests.yml
     with:
       name: Unit and UI tests
-      only: -skip-testing:RecipiUITests/AccessibilityAuditTests
+      only: >-
+        -skip-testing:RecipiUITests/AccessibilityAuditTests
+        -skip-testing:RecipiUITests/AppStoreScreenshotTests

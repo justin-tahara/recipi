@@ -34,7 +34,7 @@ can read; see the [backup format](backup-format.md).
 
 ## How does iCloud sync work?
 
-recipi keeps your recipes in step across your iPhone and iPad through your
+recipi keeps your recipes in step across your devices through your
 own private iCloud database. You need to be signed in to iCloud on each
 device. Sync is on by default.
 

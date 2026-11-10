@@ -13,6 +13,11 @@ struct RecipiApp: App {
         } catch {
             fatalError("Couldn't open the recipe store: \(error)")
         }
+        #if DEBUG
+        if TestSupport.seedsSampleLibrary {
+            SampleLibrary.seed(into: container.mainContext)
+        }
+        #endif
     }
 
     private static func makeContainer() throws -> ModelContainer {

@@ -1,0 +1,31 @@
+name: App Store screenshots
+
+# Takes the App Store screenshots (RecipiUITests/AppStoreScreenshotTests.swift):
+# the app with a sample library on a 6.9-inch iPhone simulator, the size App
+# Store Connect asks for, with a clean status bar. Each screen is an
+# attachment in the result bundle, uploaded as the "App Store
+# screenshots.xcresult" artifact. Export the PNGs with
+# `xcrun xcresulttool export attachments --path <bundle> --output-path <dir>`.
+#
+# On demand only: Actions -> App Store screenshots -> Run workflow, or
+# `gh workflow run app-store-screenshots.yml --ref <branch>`. It builds
+# unsigned like CI and uses no secrets, so the artifact holds only the
+# screenshots of made-up recipes.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  screenshots:
+    name: App Store screenshots
+    uses: ./.github/workflows/simulator-tests.yml
+    with:
+      name: App Store screenshots
+      only: -only-testing:RecipiUITests/AppStoreScreenshotTests
+      screenshots: true
