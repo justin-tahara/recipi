@@ -18,17 +18,12 @@ permissions:
   contents: read
 
 jobs:
-  audit:
-    name: ${{ matrix.name }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Accessibility audit
-            only: -only-testing:RecipiUITests/AccessibilityAuditTests/testMainScreensPassAccessibilityAudit
-          - name: Accessibility audit (largest text)
-            only: -only-testing:RecipiUITests/AccessibilityAuditTests/testMainScreensPassAccessibilityAuditAtLargestTextSize
+  # TEMPORARY branch only: app-store-screenshots.yml can't be dispatched
+  # until it's on main, so this runs the same job for one check of PR #65.
+  screenshots:
+    name: App Store screenshots
     uses: ./.github/workflows/simulator-tests.yml
     with:
-      name: ${{ matrix.name }}
-      only: ${{ matrix.only }}
+      name: App Store screenshots
+      only: -only-testing:RecipiUITests/AppStoreScreenshotTests
+      screenshots: true
