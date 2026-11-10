@@ -200,10 +200,10 @@ enum UnitConverter {
 
 extension ParsedIngredient {
     /// The line scaled by `factor` and shown in `preference`'s units, split
-    /// into amount and the rest like `scaledParts(by:)`. Lines already in
-    /// the chosen system, count units and lines without an amount are only
+    /// around the amount like `scaledParts(by:)`. Lines already in the
+    /// chosen system, count units and lines without an amount are only
     /// scaled.
-    public func displayParts(scaledBy factor: Double, in preference: MeasurementPreference) -> (amount: String, rest: String) {
+    public func displayParts(scaledBy factor: Double, in preference: MeasurementPreference) -> (lead: String, amount: String, rest: String) {
         guard let converted = converted(scaledBy: factor, to: preference) else {
             return scaledParts(by: factor)
         }
@@ -213,14 +213,31 @@ extension ParsedIngredient {
     /// `displayParts(scaledBy:in:)` as one line, e.g. for the grocery list.
     public func display(scaledBy factor: Double, in preference: MeasurementPreference) -> String {
         let parts = displayParts(scaledBy: factor, in: preference)
-        return parts.amount + parts.rest
+        return parts.lead + parts.amount + parts.rest
     }
 
-    private func converted(scaledBy factor: Double, to preference: MeasurementPreference) -> (amount: String, rest: String)? {
+    /// The line's convertible unit, with the text that goes before and after
+    /// a converted amount: (.cup, "", " milk") for "2 cups milk",
+    /// (.tablespoon, "砂糖 ", "") for "砂糖 大さじ2" and (.milliliter, "水 ", "")
+    /// for "水 200ml". Nil when the unit doesn't convert.
+    var measuredUnit: (unit: MeasureUnit, lead: String, after: Substring)? {
+        if lead.isEmpty {
+            guard let leading = UnitConverter.leadingUnit(in: remainder) else { return nil }
+            return (leading.unit, "", leading.after)
+        }
+        // An amount after the item ends the line, so nothing follows the
+        // unit. A unit written before the amount ("大さじ2") is dropped from
+        // the lead, since the converted unit follows the amount.
+        guard let unit, let measure = MeasureUnit(normalizedName: unit) else { return nil }
+        let item = AmountAfterItem.unitBefore(endOf: lead)?.item ?? Substring(lead)
+        return (measure, item.trimmingCharacters(in: .whitespaces) + " ", "")
+    }
+
+    private func converted(scaledBy factor: Double, to preference: MeasurementPreference) -> (lead: String, amount: String, rest: String)? {
         guard let system = preference.system, let quantity,
-              let leading = UnitConverter.leadingUnit(in: remainder),
-              leading.unit.system != system else { return nil }
-        let unit = leading.unit
+              let measured = measuredUnit,
+              measured.unit.system != system else { return nil }
+        let unit = measured.unit
         let factor = factor > 0 ? factor : 1
         let low = quantity * factor * unit.baseAmount
         let target = MeasureUnit.best(for: low, dimension: unit.dimension, system: system)
@@ -234,7 +251,7 @@ extension ParsedIngredient {
                 largest = highAmount.value
             }
         }
-        return (amount, " " + target.label(plural: largest > 1) + leading.after)
+        return (measured.lead, amount, " " + target.label(plural: largest > 1) + measured.after)
     }
 }
 

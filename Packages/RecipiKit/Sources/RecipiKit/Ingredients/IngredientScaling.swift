@@ -7,7 +7,7 @@ public enum IngredientScaling {
     /// first, then the others of the same kind (weight or volume). Empty when
     /// the line has no unit we can convert, like "3 eggs" or "2 cloves".
     public static func unitChoices(for ingredient: ParsedIngredient) -> [String] {
-        guard let own = UnitConverter.leadingUnit(in: ingredient.remainder)?.unit else { return [] }
+        guard let own = ingredient.measuredUnit?.unit else { return [] }
         let sameKind = MeasureUnit.allCases.filter { $0.dimension == own.dimension && $0 != own }
         return ([own] + sameKind).map { $0.label(plural: false) }
     }
@@ -18,7 +18,7 @@ public enum IngredientScaling {
     /// positive, or the units measure different things.
     public static func factor(for ingredient: ParsedIngredient, have amount: Double, unit: String?) -> Double? {
         guard let needed = ingredient.quantity, needed > 0, amount > 0, amount.isFinite else { return nil }
-        guard let unit, let own = UnitConverter.leadingUnit(in: ingredient.remainder)?.unit,
+        guard let unit, let own = ingredient.measuredUnit?.unit,
               let chosen = MeasureUnit.allCases.first(where: { $0.label(plural: false) == unit }),
               chosen != own else {
             return amount / needed
@@ -29,8 +29,12 @@ public enum IngredientScaling {
 
     /// What the line is about, without its amount, convertible unit or
     /// trailing notes: "1 lb chicken thighs, skin on" → "chicken thighs",
-    /// "2 cloves garlic" → "cloves garlic".
+    /// "2 cloves garlic" → "cloves garlic", "砂糖 大さじ2" → "砂糖".
     public static func itemName(of ingredient: ParsedIngredient) -> String {
+        if !ingredient.lead.isEmpty {
+            let item = AmountAfterItem.unitBefore(endOf: ingredient.lead)?.item ?? Substring(ingredient.lead)
+            return item.trimmingCharacters(in: .whitespaces)
+        }
         let rest = UnitConverter.leadingUnit(in: ingredient.remainder).map { String($0.after) } ?? ingredient.remainder
         let name = rest.split(separator: ",", maxSplits: 1).first.map(String.init) ?? rest
         return name.trimmingCharacters(in: .whitespaces)

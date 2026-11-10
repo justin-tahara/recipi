@@ -266,10 +266,18 @@ struct RecipeTranslationPlanTests {
     }
 
     @Test func translatesWholeLinesWithoutALeadingAmount() {
-        let source = RecipeText(ingredients: [.init("醤油 大さじ2"), .init("1,5 kg de bœuf"), .init("Sel")])
+        let source = RecipeText(ingredients: [.init("醤油 大さじ2"), .init("卵 2個"), .init("Sel")])
         let plan = RecipeTranslationPlan(source)
         let ingredientTexts = plan.segments.filter { $0.id.hasPrefix("ingredient.") }.map(\.text)
-        #expect(ingredientTexts == ["醤油 大さじ2", "1,5 kg de bœuf", "Sel"])
+        #expect(ingredientTexts == ["醤油 大さじ2", "卵 2個", "Sel"])
+    }
+
+    @Test func keepsDecimalCommasAsWritten() {
+        let plan = RecipeTranslationPlan(RecipeText(ingredients: [.init("1,5 kg de bœuf")]))
+        #expect(plan.segments.map(\.text) == ["kg de bœuf"])
+        let translated = plan.apply(["ingredient.0": "kg of beef"])
+        #expect(translated.ingredients.map(\.text) == ["1,5 kg of beef"])
+        #expect(IngredientParser.parse(translated.ingredients[0].text).quantity == 1.5)
     }
 
     @Test func keepsTheOriginalWhereATranslationIsMissing() {
